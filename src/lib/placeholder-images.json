@@ -1,7 +1,8 @@
+
 {
   "placeholderImages": [
     { "id": "apple", "description": "Fresh red apples", "imageUrl": "https://picsum.photos/seed/apple/400/400", "imageHint": "red apple" },
-    { "id": "banana", "description": "Ripe yellow bananas", "imageUrl": "https://picsum.photos/seed/banana/400/400", "imageHint": "yellow banana" },
+    { "id": "banana", "description": "Ripe yellow bananas", "imageUrl": "https://images.unsplash.com/photo-1640958900081-7b069dd23e9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYW5uYW5hfGVufDB8fHx8MTc1ODM1OTExN3ww&ixlib=rb-4.1.0&q=80&w=1080", "imageHint": "yellow banana" },
     { "id": "orange", "description": "Juicy oranges", "imageUrl": "https://picsum.photos/seed/orange/400/400", "imageHint": "orange fruit" },
     { "id": "strawberry", "description": "Sweet strawberries", "imageUrl": "https://picsum.photos/seed/strawberry/400/400", "imageHint": "strawberry fruit" },
     { "id": "broccoli", "description": "Fresh green broccoli", "imageUrl": "https://picsum.photos/seed/broccoli/400/400", "imageHint": "broccoli vegetable" },
