@@ -8,7 +8,7 @@ export const categories: Category[] = [
 export const products: Product[] = [
   { id: '1', name: 'Apple', description: 'Crisp and sweet red apples.', price: 2.50, imageUrl: 'https://picsum.photos/seed/apple/400/400', imageHint: 'red apple', category: 'fruits', stock: 100 },
   { id: '2', name: 'Banana', description: 'Ripe and creamy bananas.', price: 1.80, imageUrl: 'https://images.unsplash.com/photo-1640958900081-7b069dd23e9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYW5uYW5hfGVufDB8fHx8MTc1ODM1OTExN3ww&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'yellow banana', category: 'fruits', subcategory: 'Tropical', stock: 150 },
-  { id: '3', name: 'Orange', description: 'Juicy and vitamin C-rich oranges.', price: 3.10, imageUrl: 'https://picsum.photos/seed/orange/400/400', imageHint: 'orange fruit', category: 'fruits', subcategory: 'Citrus', stock: 80 },
+  { id: '3', name: 'Orange', description: 'Juicy and vitamin C-rich oranges.', price: 3.10, imageUrl: 'https://images.unsplash.com/photo-1547514701-42782101795e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxvcmFuZ2V8ZW58MHx8fHwxNzU4MzU5MTM2fDA&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'orange fruit', category: 'fruits', subcategory: 'Citrus', stock: 80 },
   { id: '4', name: 'Strawberry', description: 'Sweet and fresh strawberries.', price: 4.00, imageUrl: 'https://picsum.photos/seed/strawberry/400/400', imageHint: 'strawberry fruit', category: 'fruits', subcategory: 'Berries', stock: 120 },
   { id: '5', name: 'Broccoli', description: 'Fresh green broccoli florets.', price: 2.75, imageUrl: 'https://picsum.photos/seed/broccoli/400/400', imageHint: 'broccoli vegetable', category: 'vegetables', stock: 90 },
   { id: '6', name: 'Carrot', description: 'Crunchy and sweet carrots.', price: 1.50, imageUrl: 'https://picsum.photos/seed/carrot/400/400', imageHint: 'carrot vegetable', category: 'vegetables', subcategory: 'Root Vegetables', stock: 200 },
@@ -44,7 +44,7 @@ export const userOrders: Order[] = [
         total: 10.80,
         shippingAddress: userAddresses[0],
         items: [
-            { id: '2', name: 'Banana', price: 1.80, imageUrl: 'https://images.unsplash.com/photo-1640958900081-7b069dd23e9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYW5uYW5hfGVufDB8fHx8MTc1ODM1OTExN3ww&ixlib=rb-4.1.0&q=80&w=1080', quantity: 6 },
+            { id: '2', name: 'Banana', price: 1.80, imageUrl: 'https://picsum.photos/seed/banana/400/400', quantity: 6 },
         ]
     },
 ];
