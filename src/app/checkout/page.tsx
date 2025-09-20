@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -20,7 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutSchema } from "@/lib/validation";
 import type { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useActionState } from "react";
 import { useRouter } from "next/navigation";
 
 
@@ -39,7 +39,7 @@ export default function CheckoutPage() {
     const { user } = useAuth();
     const router = useRouter();
     
-    const [state, formAction] = useFormState(placeOrder, { success: false, error: null, orderId: null });
+    const [state, formAction] = useActionState(placeOrder, { success: false, error: null, orderId: null });
 
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
@@ -75,7 +75,7 @@ export default function CheckoutPage() {
                 </main>
                 <SiteFooter />
             </div>
-        )
+        );
     }
 
     return (
@@ -230,5 +230,5 @@ export default function CheckoutPage() {
             </main>
             <SiteFooter />
         </div>
-    )
+    );
 }

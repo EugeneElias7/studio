@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useState, useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import { getCategories } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ function SubmitButton() {
 
 export default function CategorizeProductPage() {
   const initialState = { success: false, categories: [], error: null, details: null };
-  const [state, formAction] = useFormState(getCategories, initialState);
+  const [state, formAction] = useActionState(getCategories, initialState);
   const [preview, setPreview] = useState<string | null>(null);
   const [photoDataUri, setPhotoDataUri] = useState<string>("");
 
