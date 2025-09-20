@@ -38,6 +38,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const removeFromCart = (itemId: string) => {
     setCartItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
+    toast({
+        title: "Item removed",
+        description: "An item has been removed from your cart.",
+      });
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
