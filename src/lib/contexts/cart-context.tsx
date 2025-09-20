@@ -1,12 +1,13 @@
 "use client";
 
-import type { CartItem } from "@/lib/types";
-import React, { createContext, useContext, useState, useMemo, ReactNode } from "react";
+import type { CartItem, Product } from "@/lib/types";
+import React, { createContext, useContext, useState, useMemo, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import Cookies from 'js-cookie';
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: Omit<CartItem, 'quantity'>, quantity?: number) => void;
+  addToCart: (item: Product, quantity?: number) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -20,19 +21,31 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const { toast } = useToast();
 
-  const addToCart = (item: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
+  useEffect(() => {
+    const savedCart = Cookies.get('cartItems');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+  }, []);
+
+  useEffect(() => {
+    Cookies.set('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  const addToCart = (product: Product, quantity: number = 1) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find((i) => i.id === item.id);
+      const existingItem = prevItems.find((i) => i.id === product.id);
       if (existingItem) {
         return prevItems.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
         );
       }
-      return [...prevItems, { ...item, quantity }];
+      const { stock, ...cartProductData } = product;
+      return [...prevItems, { ...cartProductData, quantity }];
     });
     toast({
       title: "Added to cart",
-      description: `${quantity}x ${item.name} has been added to your cart.`,
+      description: `${quantity}x ${product.name} has been added to your cart.`,
     });
   };
 
@@ -41,6 +54,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     toast({
         title: "Item removed",
         description: "An item has been removed from your cart.",
+        variant: "destructive"
       });
   };
 

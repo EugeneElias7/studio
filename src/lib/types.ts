@@ -39,7 +39,7 @@ export type Order = {
   id: string;
   date: string;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-  items: CartItem[];
+  items: Omit<CartItem, 'id' | 'imageUrl' | 'price' >[];
   total: number;
   shippingAddress: Address;
 };

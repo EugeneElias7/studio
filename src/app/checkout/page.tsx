@@ -9,60 +9,56 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useFormState, useFormStatus } from "react-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CreditCard, Truck } from "lucide-react";
+import { CreditCard, Truck, AlertCircle, Loader2 } from "lucide-react";
+import { placeOrder } from "./actions";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { checkoutSchema } from "@/lib/validation";
+import type { z } from "zod";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const addressSchema = z.object({
-    street: z.string().min(1, "Street is required"),
-    city: z.string().min(1, "City is required"),
-    state: z.string().min(1, "State is required"),
-    zip: z.string().min(5, "Zip code must be 5 digits"),
-});
 
-const checkoutSchema = z.object({
-    shippingAddress: z.string().min(1, "Please select a shipping address"),
-    newAddress: addressSchema.optional(),
-    cardholderName: z.string().min(1, "Cardholder name is required"),
-    cardNumber: z.string().min(16, "Card number must be 16 digits").max(16),
-    expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "Invalid expiry date (MM/YY)"),
-    cvv: z.string().min(3, "CVV must be 3 digits").max(4),
-});
+function SubmitButton({ cartTotal }: { cartTotal: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" size="lg" className="w-full" disabled={pending}>
+      {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+      Place Order - ${cartTotal.toFixed(2)}
+    </Button>
+  );
+}
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
     const { user } = useAuth();
     const router = useRouter();
+    
+    const [state, formAction] = useFormState(placeOrder, { success: false, error: null, orderId: null });
 
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
             shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
             newAddress: { street: "", city: "", state: "", zip: "" },
-            cardholderName: "",
+            cardholderName: user?.displayName || "",
             cardNumber: "",
             expiryDate: "",
             cvv: "",
         },
     });
 
-    function onSubmit(values: z.infer<typeof checkoutSchema>) {
-        console.log(values);
-        // Here you would typically process the payment and create an order.
-        // For this demo, we'll just clear the cart and redirect.
-        clearCart();
-        toast({
-            title: "Order Placed!",
-            description: "Thank you for your purchase. Your order is being processed.",
-        });
-        router.push("/");
-    }
+    useEffect(() => {
+        if (state.success && state.orderId) {
+            clearCart();
+            router.push(`/checkout/success?orderId=${state.orderId}`);
+        }
+    }, [state, router, clearCart]);
 
     if (cartItems.length === 0) {
         return (
@@ -91,10 +87,11 @@ export default function CheckoutPage() {
                         <Button asChild variant="outline"><Link href="/">← Continue Shopping</Link></Button>
                     </div>
                     <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight mb-8">Checkout</h1>
+
                     <div className="grid lg:grid-cols-3 gap-12 items-start">
                         <div className="lg:col-span-2">
-                            <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                             <Form {...form}>
+                                <form action={formAction} className="space-y-8">
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Shipping Address</CardTitle>
@@ -176,7 +173,14 @@ export default function CheckoutPage() {
                                         </CardContent>
                                     </Card>
 
-                                    <Button type="submit" size="lg" className="w-full">Place Order - ${cartTotal.toFixed(2)}</Button>
+                                    {state.success === false && state.error && (
+                                        <Alert variant="destructive">
+                                            <AlertCircle className="h-4 w-4" />
+                                            <AlertTitle>Checkout Error</AlertTitle>
+                                            <AlertDescription>{state.error}</AlertDescription>
+                                        </Alert>
+                                    )}
+                                    <SubmitButton cartTotal={cartTotal} />
                                 </form>
                             </Form>
                         </div>
