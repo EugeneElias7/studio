@@ -27,7 +27,7 @@ export default function CheckoutSuccessPage({ searchParams }: { searchParams: { 
     return (
         <div className="flex min-h-screen flex-col bg-muted/40">
             <SiteHeader />
-            <main className="flex-1">
+            <main className="flex-1 flex items-center">
                 <div className="container py-12 md:py-16">
                     <Card className="max-w-2xl mx-auto">
                         <CardHeader className="text-center">

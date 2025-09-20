@@ -44,70 +44,72 @@ export default function CategorizeProductPage() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/40">
-      <div className="container mx-auto p-4 md:p-8">
-        <div className="mb-6">
-            <Button asChild variant="outline"><Link href="/">← Back to Shop</Link></Button>
-        </div>
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="font-headline text-2xl">Product Image Categorization</CardTitle>
-            <CardDescription>Upload a product image and description to get AI-powered category suggestions.</CardDescription>
-          </CardHeader>
-          <form action={formAction}>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="image">Product Image</Label>
-                <Input id="image" type="file" accept="image/*" onChange={handleImageChange} required />
-                <input type="hidden" name="photoDataUri" value={photoDataUri} />
-              </div>
-
-              {preview && (
-                <div className="flex justify-center">
-                  <Image src={preview} alt="Product preview" width={200} height={200} className="rounded-lg object-cover" />
+    <div className="flex flex-col min-h-screen bg-muted/40">
+      <div className="flex-grow flex items-center justify-center">
+        <div className="container mx-auto p-4 md:p-8">
+            <div className="max-w-2xl mx-auto mb-6">
+                <Button asChild variant="outline"><Link href="/">← Back to Shop</Link></Button>
+            </div>
+            <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+                <CardTitle className="font-headline text-2xl">Product Image Categorization</CardTitle>
+                <CardDescription>Upload a product image and description to get AI-powered category suggestions.</CardDescription>
+            </CardHeader>
+            <form action={formAction}>
+                <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="image">Product Image</Label>
+                    <Input id="image" type="file" accept="image/*" onChange={handleImageChange} required />
+                    <input type="hidden" name="photoDataUri" value={photoDataUri} />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Product Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  placeholder="e.g., 'Fresh, organic red apples, perfect for snacking or baking.'"
-                  required
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <SubmitButton />
-            </CardFooter>
-          </form>
-        </Card>
+                {preview && (
+                    <div className="flex justify-center">
+                    <Image src={preview} alt="Product preview" width={200} height={200} className="rounded-lg object-cover" />
+                    </div>
+                )}
 
-        {state.success && state.categories && state.categories.length > 0 && (
-          <Alert className="mt-8 max-w-2xl mx-auto border-green-500">
-            <PartyPopper className="h-4 w-4 text-green-500" />
-            <AlertTitle className="text-green-600">Suggestions Ready!</AlertTitle>
-            <AlertDescription>
-              <p className="mb-4">Here are the suggested categories for your product:</p>
-              <div className="flex flex-wrap gap-2">
-                {state.categories.map((category, index) => (
-                  <Badge key={index} variant="secondary" className="text-base px-3 py-1">{category}</Badge>
-                ))}
-              </div>
-            </AlertDescription>
-          </Alert>
-        )}
+                <div className="space-y-2">
+                    <Label htmlFor="description">Product Description</Label>
+                    <Textarea
+                    id="description"
+                    name="description"
+                    placeholder="e.g., 'Fresh, organic red apples, perfect for snacking or baking.'"
+                    required
+                    />
+                </div>
+                </CardContent>
+                <CardFooter>
+                <SubmitButton />
+                </CardFooter>
+            </form>
+            </Card>
 
-        {state.success === false && state.error && (
-            <Alert variant="destructive" className="mt-8 max-w-2xl mx-auto">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>An Error Occurred</AlertTitle>
+            {state.success && state.categories && state.categories.length > 0 && (
+            <Alert className="mt-8 max-w-2xl mx-auto border-green-500">
+                <PartyPopper className="h-4 w-4 text-green-500" />
+                <AlertTitle className="text-green-600">Suggestions Ready!</AlertTitle>
                 <AlertDescription>
-                    {state.error as string}
+                <p className="mb-4">Here are the suggested categories for your product:</p>
+                <div className="flex flex-wrap gap-2">
+                    {state.categories.map((category, index) => (
+                    <Badge key={index} variant="secondary" className="text-base px-3 py-1">{category}</Badge>
+                    ))}
+                </div>
                 </AlertDescription>
             </Alert>
-        )}
+            )}
+
+            {state.success === false && state.error && (
+                <Alert variant="destructive" className="mt-8 max-w-2xl mx-auto">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>An Error Occurred</AlertTitle>
+                    <AlertDescription>
+                        {state.error as string}
+                    </AlertDescription>
+                </Alert>
+            )}
+        </div>
       </div>
     </div>
   );
