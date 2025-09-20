@@ -6,7 +6,7 @@ export const categories: Category[] = [
 ];
 
 export const products: Product[] = [
-  { id: '1', name: 'Apple', description: 'Crisp and sweet red apples.', price: 2.50, imageUrl: 'https://picsum.photos/seed/apple/400/400', imageHint: 'red apple', category: 'fruits', stock: 100 },
+  { id: '1', name: 'Apple', description: 'Crisp and sweet red apples.', price: 2.50, imageUrl: 'https://images.unsplash.com/photo-1576179635662-9d1983e97e1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMXx8YXBwbGV8ZW58MHx8fHwxNzU4MjkwMDU0fDA&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'red apple', category: 'fruits', stock: 100 },
   { id: '2', name: 'Banana', description: 'Ripe and creamy bananas.', price: 1.80, imageUrl: 'https://images.unsplash.com/photo-1640958900081-7b069dd23e9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxiYW5uYW5hfGVufDB8fHx8MTc1ODM1OTExN3ww&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'yellow banana', category: 'fruits', subcategory: 'Tropical', stock: 150 },
   { id: '3', name: 'Orange', description: 'Juicy and vitamin C-rich oranges.', price: 3.10, imageUrl: 'https://images.unsplash.com/photo-1547514701-42782101795e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxvcmFuZ2V8ZW58MHx8fHwxNzU4MzU5MTM2fDA&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'orange fruit', category: 'fruits', subcategory: 'Citrus', stock: 80 },
   { id: '4', name: 'Strawberry', description: 'Sweet and fresh strawberries.', price: 4.00, imageUrl: 'https://picsum.photos/seed/strawberry/400/400', imageHint: 'strawberry fruit', category: 'fruits', subcategory: 'Berries', stock: 120 },
