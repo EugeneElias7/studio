@@ -10,7 +10,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,14 +38,22 @@ export default function CheckoutPage() {
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
-    // Set default selected address
-    const defaultAddress = user?.addresses?.find(a => a.isDefault)?.id || (user?.addresses?.length ? user.addresses[0].id : "new");
-    const [selectedAddress, setSelectedAddress] = useState(defaultAddress);
+    const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined);
     const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
     useEffect(() => {
         setIsClient(true);
     }, []);
+
+    useEffect(() => {
+        if (user?.addresses) {
+            const defaultAddress = user.addresses.find(a => a.isDefault)?.id || (user.addresses.length ? user.addresses[0].id : "new");
+            setSelectedAddress(defaultAddress);
+        } else if (user) {
+            setSelectedAddress("new");
+        }
+    }, [user]);
+
 
     const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null, orderId: null });
 
@@ -56,7 +65,7 @@ export default function CheckoutPage() {
     }, [state, router, clearCart]);
 
 
-    if (!isClient || authLoading) {
+    if (!isClient || authLoading || selectedAddress === undefined) {
         return (
              <div className="flex min-h-screen flex-col">
                 <SiteHeader />
@@ -206,20 +215,20 @@ export default function CheckoutPage() {
                                     <CardContent className="space-y-4">
                                         <div className="space-y-2">
                                             <Label htmlFor="cardholderName">Cardholder Name</Label>
-                                            <Input name="cardholderName" id="cardholderName" placeholder="John Doe" defaultValue={user.displayName ?? ""} required />
+                                            <Input name="cardholderName" id="cardholderName" placeholder="John Doe" defaultValue={user.displayName ?? ""} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="cardNumber">Card Number</Label>
-                                            <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" required />
+                                            <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="expiryDate">Expiry Date</Label>
-                                                <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" required />
+                                                <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="cvv">CVV</Label>
-                                                <Input name="cvv" id="cvv" placeholder="123" required />
+                                                <Input name="cvv" id="cvv" placeholder="123" />
                                             </div>
                                         </div>
                                     </CardContent>

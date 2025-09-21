@@ -127,6 +127,8 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
     // Revalidate paths to reflect changes
     revalidatePath('/checkout');
     revalidatePath('/account/orders');
+    revalidatePath('/account');
+
 
     return { success: true, orderId: orderDocRef.id };
 

@@ -12,7 +12,7 @@ import Image from "next/image";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { products } from "@/lib/data";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { Order } from "@/lib/types";
 
 
@@ -23,19 +23,45 @@ export default function CheckoutSuccessPage() {
     const [order, setOrder] = useState<Order | undefined>(undefined);
     const [pageLoading, setPageLoading] = useState(true);
 
-    useEffect(() => {
-        // We need to refresh user data to get the latest order
-        refreshUserData().finally(() => {
-             setPageLoading(false);
-        });
-    }, [refreshUserData]);
+     const findOrderInUser = useCallback((currentUser: typeof user) => {
+        if (currentUser && orderId) {
+            const foundOrder = currentUser.orders.find(o => o.id === orderId);
+            if (foundOrder) {
+                setOrder(foundOrder);
+                setPageLoading(false);
+                return true;
+            }
+        }
+        return false;
+    }, [orderId]);
+
 
     useEffect(() => {
-        if (user && orderId) {
-            const foundOrder = user.orders.find(o => o.id === orderId);
-            setOrder(foundOrder);
+        // If user data is already loaded, try to find the order.
+        if (!authLoading && findOrderInUser(user)) {
+            return;
         }
-    }, [user, orderId]);
+
+        // If user data is still loading or order not found,
+        // set up a refresh mechanism.
+        if (orderId) {
+             // We need to refresh user data to get the latest order
+            refreshUserData().finally(() => {
+                // After refresh, the user object in context will update,
+                // and the useEffect below will run.
+            });
+        }
+    }, [authLoading, user, orderId, findOrderInUser, refreshUserData]);
+
+    useEffect(() => {
+        if(user && !order) {
+            if(findOrderInUser(user)) {
+                setPageLoading(false);
+            }
+        } else if (order) {
+            setPageLoading(false);
+        }
+    }, [user, order, findOrderInUser]);
 
     const getProductDetails = (name: string) => {
         return products.find(p => p.name === name);
