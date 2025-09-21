@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react";
-import { Auth, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { Auth, onAuthStateChanged, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc, collection, getDocs, query, where, addDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import type { AppUser, Order, UserProfile, Address } from "@/lib/types";
@@ -12,6 +12,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<void>;
   signup: (name: string, email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   loading: boolean;
   addOrder: (order: Omit<Order, 'id' | 'userId'>) => Promise<Order | null>;
 }
@@ -84,6 +85,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(doc(db, "users", uid), userProfile);
     setUser({ ...userProfile, orders: [] });
   };
+  
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+    const firebaseUser = result.user;
+
+    // Check if user already exists in Firestore
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+
+    if (!userDocSnap.exists()) {
+        // Create a new user profile if it's their first time
+        const newUserProfile: UserProfile = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email!,
+            displayName: firebaseUser.displayName || 'New User',
+            addresses: [],
+        };
+        await setDoc(userDocRef, newUserProfile);
+    }
+    // Auth state change will trigger re-fetch of all user data
+  };
+
 
   const logout = async () => {
     await signOut(auth);
@@ -107,7 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading, addOrder }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading, addOrder, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );
