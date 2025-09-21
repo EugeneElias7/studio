@@ -4,8 +4,6 @@
 import { z } from "zod";
 import { checkoutSchema } from "@/lib/validation";
 import { cookies } from "next/headers";
-import type { CartItem, Order, Address } from "@/lib/types";
-import { userAddresses } from "@/lib/data";
 
 type FormState = {
   success: boolean;
@@ -18,7 +16,6 @@ const processPayment = (
 ): Promise<{ success: boolean; error?: string }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // No more validation error
       resolve({ success: true });
     }, 1500);
   });
@@ -26,7 +23,25 @@ const processPayment = (
 
 export async function placeOrder(prevState: FormState, formData: FormData): Promise<FormState> {
   try {
-    const values = Object.fromEntries(formData.entries());
+    const rawData = Object.fromEntries(formData.entries());
+    
+    // The new address fields are nested, so we need to process them.
+    const values = {
+      ...rawData,
+      newAddress: {
+        street: rawData['newAddress.street'],
+        city: rawData['newAddress.city'],
+        state: rawData['newAddress.state'],
+        zip: rawData['newAddress.zip'],
+      }
+    };
+    
+    // Remove the flat new address fields as they are now nested.
+    delete values['newAddress.street'];
+    delete values['newAddress.city'];
+    delete values['newAddress.state'];
+    delete values['newAddress.zip'];
+
     const validatedData = checkoutSchema.safeParse(values);
     
     if (!validatedData.success) {
@@ -46,10 +61,6 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
       return { success: false, error: "Your cart is empty." };
     }
     
-    // NOTE: We cannot call the `addOrder` from the auth context here as it's a client context hook.
-    // The order placement will be handled on the client-side after this action returns a success state.
-    // We clear the cart cookie here as a final step on the server.
-    
     cookies().set("cartItems", "[]"); // Clear cart cookie
 
     return { success: true };
@@ -59,5 +70,3 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
     return { success: false, error: "An unexpected error occurred. Please try again." };
   }
 }
-
-    
