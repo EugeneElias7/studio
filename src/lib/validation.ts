@@ -25,6 +25,7 @@ export const checkoutSchema = z.object({
             result.error.issues.forEach(issue => {
                 ctx.addIssue({
                     ...issue,
+                    // Remap path to match flat form data structure for better error display
                     path: [('newAddress' + issue.path[0].charAt(0).toUpperCase() + issue.path[0].slice(1)) as any],
                 });
             });
@@ -35,11 +36,12 @@ export const checkoutSchema = z.object({
         if (!data.cardholderName || data.cardholderName.trim().length < 2) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cardholderName'], message: 'Cardholder name is required.' });
         }
-        if (!data.cardNumber || !/^\d{16}$/.test(data.cardNumber.replace(/\s/g, ''))) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cardNumber'], message: 'Card number must be 16 digits.' });
+        // Basic card number validation (13-19 digits, allows spaces)
+        if (!data.cardNumber || !/^\d{13,19}$/.test(data.cardNumber.replace(/\s/g, ''))) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cardNumber'], message: 'Please enter a valid card number.' });
         }
-        if (!data.expiryDate || !/^(0[1-9]|1[0-2])\s*\/\s*\d{2}$/.test(data.expiryDate)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiryDate'], message: 'Expiry date must be in MM/YY format.' });
+        if (!data.expiryDate || !/^(0[1-9]|1[0-2])\s*\/\s*([0-9]{2})$/.test(data.expiryDate)) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiryDate'], message: 'Expiry must be in MM/YY format.' });
         }
         if (!data.cvv || !/^\d{3,4}$/.test(data.cvv)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cvv'], message: 'CVV must be 3 or 4 digits.' });

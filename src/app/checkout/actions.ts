@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { checkoutSchema } from '@/lib/validation';
 import { cookies } from 'next/headers';
-import { doc, getDoc, writeBatch, collection } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order, Address, UserProfile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -87,7 +87,7 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
             city: newAddress.city,
             state: newAddress.state,
             zip: newAddress.zip,
-            isDefault: false 
+            isDefault: false // New addresses are not made default automatically
         };
         finalShippingAddress = newAddressWithId;
         shouldAddNewAddress = true;
