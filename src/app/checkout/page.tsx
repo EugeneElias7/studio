@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/lib/contexts/cart-context";
@@ -66,7 +67,8 @@ export default function CheckoutPage() {
                 router.push(`/checkout/success?orderId=${state.orderId}`);
             });
         }
-    }, [state, router, clearCart, refreshUserData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [state.success, state.orderId]);
 
 
     if (!isClient || authLoading || (user && selectedAddress === undefined)) {
@@ -295,3 +297,5 @@ export default function CheckoutPage() {
         </div>
     );
 }
+
+    
