@@ -46,7 +46,7 @@ export default function OrdersPage() {
             <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight mb-8">My Orders</h1>
             
             <div className="space-y-8">
-                {user.orders.length > 0 ? (
+                {user.orders && user.orders.length > 0 ? (
                     user.orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(order => (
                         <Card key={order.id}>
                             <CardHeader>

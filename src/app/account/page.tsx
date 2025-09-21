@@ -70,7 +70,7 @@ export default function AccountPage() {
                         <CardContent className="space-y-6">
                             <div className="space-y-2">
                                 <h3 className="font-semibold">Addresses</h3>
-                                {user.addresses.length > 0 ? (
+                                {user.addresses && user.addresses.length > 0 ? (
                                     user.addresses.map(addr => (
                                         <div key={addr.id} className="border p-4 rounded-md">
                                             <p className="font-medium">{addr.street}</p>
