@@ -11,7 +11,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useFormStatus } from "react-dom";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -22,9 +22,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutSchema } from "@/lib/validation";
 import type { z } from "zod";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Order, Address } from "@/lib/types";
 
 
 function SubmitButton({ cartTotal }: { cartTotal: number }) {
@@ -39,7 +37,7 @@ function SubmitButton({ cartTotal }: { cartTotal: number }) {
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
-    const { user, addOrder } = useAuth();
+    const { user } = useAuth();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
@@ -52,71 +50,39 @@ export default function CheckoutPage() {
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
+            userId: user?.uid || "",
             shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
             newAddress: { street: "", city: "", state: "", zip: "" },
             cardholderName: user?.displayName || "",
             cardNumber: "",
             expiryDate: "",
             cvv: "",
+            cartItems: JSON.stringify(cartItems),
         },
     });
-
+    
+    // Update form default values when user or cartItems change
     useEffect(() => {
-        if (user && isClient) {
+        if (isClient) {
             form.reset({
+                userId: user?.uid || "",
                 shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
                 newAddress: { street: "", city: "", state: "", zip: "" },
-                cardholderName: user.displayName || "",
+                cardholderName: user?.displayName || "",
                 cardNumber: "",
                 expiryDate: "",
                 cvv: "",
-            })
+                cartItems: JSON.stringify(cartItems),
+            });
         }
-    }, [user, isClient, form]);
+    }, [user, cartItems, isClient, form]);
     
     useEffect(() => {
-        const createOrder = async () => {
-            if (!user || !isClient) return;
-
-            const values = form.getValues();
-            let shippingAddress: Address;
-
-            if (values.shippingAddress === 'new') {
-                shippingAddress = { id: `addr${Date.now()}`, ...values.newAddress!, isDefault: false };
-            } else {
-                const foundAddress = user.addresses.find(a => a.id === values.shippingAddress);
-                if (!foundAddress) {
-                    console.error("Selected address not found");
-                    return;
-                }
-                shippingAddress = foundAddress;
-            }
-
-            const orderData: Omit<Order, 'id' | 'userId'> = {
-                date: new Date().toISOString(),
-                status: 'Processing',
-                items: cartItems.map(({ id, imageUrl, ...rest }) => rest),
-                total: cartTotal,
-                shippingAddress: shippingAddress,
-            };
-            
-            try {
-                const newOrder = await addOrder(orderData);
-                if (newOrder) {
-                    clearCart();
-                    router.push(`/checkout/success?orderId=${newOrder.id}`);
-                } else {
-                    console.error("Order creation failed on client.");
-                }
-            } catch (e) {
-                console.error("Error creating order", e);
-            }
-        };
-
-        if (state.success && isClient) {
-            createOrder();
+        if (state.success && state.orderId) {
+            clearCart(); // Clear cart from client-side context
+            router.push(`/checkout/success?orderId=${state.orderId}`);
         }
-    }, [state.success, user, form, cartItems, cartTotal, addOrder, clearCart, router, isClient]);
+    }, [state, router, clearCart]);
 
 
     if (!isClient) {
@@ -181,11 +147,19 @@ export default function CheckoutPage() {
                         <div className="lg:col-span-2">
                              <Form {...form}>
                                 <form action={formAction} className="space-y-8">
+                                    <input type="hidden" name="userId" value={form.watch('userId')} />
+                                    <input type="hidden" name="cartItems" value={form.watch('cartItems')} />
+                                    
+                                    {/* These are needed for react-hook-form to track, but will be submitted via hidden inputs */}
                                     <input type="hidden" name="shippingAddress" value={form.watch('shippingAddress')} />
                                     <input type="hidden" name="newAddress.street" value={form.watch('newAddress.street')} />
                                     <input type="hidden" name="newAddress.city" value={form.watch('newAddress.city')} />
                                     <input type="hidden" name="newAddress.state" value={form.watch('newAddress.state')} />
                                     <input type="hidden" name="newAddress.zip" value={form.watch('newAddress.zip')} />
+                                    <input type="hidden" name="cardholderName" value={form.watch('cardholderName')} />
+                                    <input type="hidden" name="cardNumber" value={form.watch('cardNumber')} />
+                                    <input type="hidden" name="expiryDate" value={form.watch('expiryDate')} />
+                                    <input type="hidden" name="cvv" value={form.watch('cvv')} />
 
                                     <Card>
                                         <CardHeader>
@@ -328,4 +302,3 @@ export default function CheckoutPage() {
     );
 }
 
-    
