@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { checkoutSchema } from '@/lib/validation';
 import { cookies } from 'next/headers';
-import { doc, getDoc, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order, Address, UserProfile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -32,25 +32,23 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
   try {
     const rawData = Object.fromEntries(formData);
     
-    // Manually construct the nested object for validation from the flat FormData
-    const validationData = {
-      ...rawData,
-      newAddress: {
-        street: rawData.newAddressStreet,
-        city: rawData.newAddressCity,
-        state: rawData.newAddressState,
-        zip: rawData.newAddressZip,
-      },
-    };
-
-    const validatedData = checkoutSchema.safeParse(validationData);
+    const validatedData = checkoutSchema.safeParse(rawData);
 
     if (!validatedData.success) {
       const firstError = Object.values(validatedData.error.flatten().fieldErrors)[0]?.[0];
       return { success: false, error: firstError || 'Invalid form data. Please check your entries.' };
     }
 
-    const { shippingAddress, newAddress, userId, cartItems: cartItemsJSON, paymentMethod } = validatedData.data;
+    const { 
+        userId, 
+        cartItems: cartItemsJSON, 
+        shippingAddress, 
+        paymentMethod,
+        newAddressStreet,
+        newAddressCity,
+        newAddressState,
+        newAddressZip
+    } = validatedData.data;
     
     if (!userId) {
         return { success: false, error: 'User is not authenticated.' };
@@ -80,10 +78,15 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
     let shouldAddNewAddress = false;
 
     // --- Address Handling ---
-    if (shippingAddress === 'new' && newAddress?.street) {
+    if (shippingAddress === 'new') {
+        const newAddress: Omit<Address, 'id' | 'isDefault'> = {
+            street: newAddressStreet!,
+            city: newAddressCity!,
+            state: newAddressState!,
+            zip: newAddressZip!,
+        };
+
         const existingAddresses = userProfile.addresses || [];
-        
-        // Check for an existing identical address
         const existingAddress = existingAddresses.find(addr => 
             addr.street.toLowerCase() === newAddress.street.toLowerCase() &&
             addr.city.toLowerCase() === newAddress.city.toLowerCase() &&
@@ -95,12 +98,9 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
             finalShippingAddress = existingAddress;
         } else {
             const newAddressWithId: Address = {
+                ...newAddress,
                 id: `addr_${Date.now()}`,
-                street: newAddress.street,
-                city: newAddress.city,
-                state: newAddress.state,
-                zip: newAddress.zip,
-                isDefault: false // New addresses are not made default automatically
+                isDefault: false
             };
             finalShippingAddress = newAddressWithId;
             shouldAddNewAddress = true;
@@ -153,7 +153,6 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
 
   } catch (error: any) {
     console.error('CRITICAL CHECKOUT ERROR:', error);
-    // Return a more specific error message to the client
     const errorMessage = error.message || 'An unknown error occurred.';
     return { 
       success: false, 
