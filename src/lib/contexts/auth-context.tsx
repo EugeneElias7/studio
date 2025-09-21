@@ -36,13 +36,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userDocSnap.exists()) {
           userProfile = userDocSnap.data() as UserProfile;
       } else {
-          // This case happens on initial signup if the doc isn't created yet.
+          // This case can happen for a new Google sign-in user,
+          // or if document creation failed during email signup.
            userProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
               displayName: firebaseUser.displayName || 'New User',
               addresses: [],
           };
+          // Create the document because it doesn't exist.
+          await setDoc(userDocRef, userProfile);
       }
 
       const orders = ordersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order));
@@ -54,9 +57,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setLoading(true);
-        const userData = await fetchUserData(firebaseUser);
-        setUser(userData);
-        setLoading(false);
+        try {
+          const userData = await fetchUserData(firebaseUser);
+          setUser(userData);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setUser(null);
+        } finally {
+          setLoading(false);
+        }
       } else {
         setUser(null);
         setLoading(false);
@@ -83,29 +92,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         addresses: [],
     };
     await setDoc(doc(db, "users", uid), userProfile);
-    setUser({ ...userProfile, orders: [] });
+    // Auth state will change, triggering a fetch of the new user's data.
+    // No need to set user state manually here.
   };
   
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const firebaseUser = result.user;
-
-    // Check if user already exists in Firestore
-    const userDocRef = doc(db, "users", firebaseUser.uid);
-    const userDocSnap = await getDoc(userDocRef);
-
-    if (!userDocSnap.exists()) {
-        // Create a new user profile if it's their first time
-        const newUserProfile: UserProfile = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email!,
-            displayName: firebaseUser.displayName || 'New User',
-            addresses: [],
-        };
-        await setDoc(userDocRef, newUserProfile);
-    }
-    // Auth state change will trigger re-fetch of all user data
+    await signInWithPopup(auth, provider);
+    // Auth state change will trigger re-fetch of all user data and profile creation if needed.
   };
 
 
