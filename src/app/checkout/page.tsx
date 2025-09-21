@@ -10,7 +10,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useFormStatus, useActionState as useActionStateReact } from "react";
+import { useFormStatus } from "react-dom";
+import { useActionState } from "react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -46,7 +47,7 @@ export default function CheckoutPage() {
         setIsClient(true);
     }, []);
 
-    const [state, formAction] = useActionStateReact(placeOrderAction, { success: false, error: null });
+    const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null });
 
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
@@ -180,6 +181,7 @@ export default function CheckoutPage() {
                         <div className="lg:col-span-2">
                              <Form {...form}>
                                 <form action={formAction} className="space-y-8">
+                                    <input type="hidden" name="shippingAddress" value={form.watch('shippingAddress')} />
                                     <input type="hidden" name="newAddress.street" value={form.watch('newAddress.street')} />
                                     <input type="hidden" name="newAddress.city" value={form.watch('newAddress.city')} />
                                     <input type="hidden" name="newAddress.state" value={form.watch('newAddress.state')} />
@@ -325,3 +327,5 @@ export default function CheckoutPage() {
         </div>
     );
 }
+
+    
