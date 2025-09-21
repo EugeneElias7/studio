@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { notFound, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { products } from "@/lib/data";
@@ -19,22 +19,25 @@ import type { Order } from "@/lib/types";
 export default function CheckoutSuccessPage() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
-    const { user, loading } = useAuth();
-    const [order, setOrder] = useState<Order | null>(null);
-    const [isClient, setIsClient] = useState(false);
+    const { user, loading: authLoading } = useAuth();
+    const [order, setOrder] = useState<Order | undefined>(undefined);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!loading && user && orderId && isClient) {
+        if (!authLoading && user && orderId) {
             const foundOrder = user.orders.find(o => o.id === orderId);
-            setOrder(foundOrder || null);
+            setOrder(foundOrder);
+            setPageLoading(false);
+        } else if (!authLoading) {
+            setPageLoading(false);
         }
-    }, [user, orderId, loading, isClient]);
+    }, [user, orderId, authLoading]);
 
-    if (!isClient || loading) {
+    const getProductDetails = (name: string) => {
+        return products.find(p => p.name === name);
+    }
+
+    if (pageLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
                 <SiteHeader />
@@ -51,15 +54,21 @@ export default function CheckoutSuccessPage() {
             <div className="flex min-h-screen flex-col bg-muted/40">
                 <SiteHeader />
                 <main className="flex-1 flex items-center justify-center">
-                    <p>Order not found.</p>
+                    <Card className="max-w-md mx-auto text-center">
+                        <CardHeader>
+                            <CardTitle>Order Not Found</CardTitle>
+                            <CardDescription>We couldn't find the details for this order. Please check your order history.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                             <Button asChild variant="outline">
+                                <Link href="/account/orders">View My Orders</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
                 </main>
                 <SiteFooter />
             </div>
         )
-    }
-    
-    const getProductDetails = (name: string) => {
-        return products.find(p => p.name === name);
     }
 
     return (
