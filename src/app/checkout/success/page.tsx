@@ -12,11 +12,11 @@ import Image from "next/image";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { products } from "@/lib/data";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import type { Order, AppUser } from "@/lib/types";
 
 
-export default function CheckoutSuccessPage() {
+function SuccessPageContent() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
     const { user, loading: authLoading } = useAuth();
@@ -30,17 +30,14 @@ export default function CheckoutSuccessPage() {
 
     useEffect(() => {
         if (authLoading) {
-            // Wait for authentication to finish
             return;
         }
         
         if (user && orderId) {
-            // user data is already refreshed by the time we get here from the checkout page
             const foundOrder = findOrderInUser(user, orderId);
             setOrder(foundOrder);
             setLoading(false);
         } else if (!authLoading) {
-            // Handle cases where user or orderId is missing after auth is done
             setLoading(false);
         }
     }, [user, orderId, authLoading, findOrderInUser]);
@@ -53,11 +50,9 @@ export default function CheckoutSuccessPage() {
     if (loading || authLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
-                <SiteHeader />
                 <main className="flex-1 flex items-center justify-center">
                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </main>
-                <SiteFooter />
             </div>
         )
     }
@@ -65,7 +60,6 @@ export default function CheckoutSuccessPage() {
     if (!orderId || !order) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
-                <SiteHeader />
                 <main className="flex-1 flex items-center justify-center">
                     <Card className="max-w-md mx-auto text-center">
                         <CardHeader>
@@ -79,14 +73,12 @@ export default function CheckoutSuccessPage() {
                         </CardContent>
                     </Card>
                 </main>
-                <SiteFooter />
             </div>
         )
     }
 
     return (
         <div className="flex min-h-screen flex-col bg-muted/40">
-            <SiteHeader />
             <main className="flex-1 flex items-center">
                 <div className="container py-12 md:py-16">
                     <Card className="max-w-2xl mx-auto">
@@ -149,7 +141,22 @@ export default function CheckoutSuccessPage() {
                     </Card>
                 </div>
             </main>
-            <SiteFooter />
         </div>
+    )
+}
+
+export default function CheckoutSuccessPage() {
+    return (
+        <>
+            <SiteHeader />
+            <Suspense fallback={
+                <div className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+            }>
+                <SuccessPageContent />
+            </Suspense>
+            <SiteFooter />
+        </>
     )
 }
