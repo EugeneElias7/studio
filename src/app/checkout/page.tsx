@@ -10,14 +10,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState, useActionState } from "react";
+import { useEffect, useState } from "react";
+import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreditCard, Truck, AlertCircle, Loader2, Wallet } from "lucide-react";
-import { placeOrder as placeOrderAction } from "./actions";
+import { placeOrder } from "./actions";
 import { useRouter } from "next/navigation";
 
 
@@ -33,7 +34,7 @@ function SubmitButton({ cartTotal }: { cartTotal: number }) {
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, refreshUserData } = useAuth();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
@@ -45,26 +46,28 @@ export default function CheckoutPage() {
     }, []);
 
     useEffect(() => {
-        if (user?.addresses) {
-            const defaultAddress = user.addresses.find(a => a.isDefault)?.id || (user.addresses.length ? user.addresses[0].id : "new");
+        if (isClient && !authLoading && user?.addresses) {
+            const defaultAddress = user.addresses.find(a => a.isDefault)?.id || (user.addresses.length > 0 ? user.addresses[0].id : "new");
             setSelectedAddress(defaultAddress);
-        } else if (user) {
+        } else if (isClient && !authLoading && user) {
             setSelectedAddress("new");
         }
-    }, [user]);
+    }, [user, authLoading, isClient]);
 
-
-    const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null, orderId: null });
+    const initialState = { success: false, error: null, orderId: null };
+    const [state, formAction] = useActionState(placeOrder, initialState);
 
     useEffect(() => {
         if (state.success && state.orderId) {
-            clearCart(); // Clear cart from client-side context
-            router.push(`/checkout/success?orderId=${state.orderId}`);
+            clearCart(); 
+            refreshUserData().then(() => {
+                router.push(`/checkout/success?orderId=${state.orderId}`);
+            });
         }
-    }, [state, router, clearCart]);
+    }, [state, router, clearCart, refreshUserData]);
 
 
-    if (!isClient || authLoading || selectedAddress === undefined) {
+    if (!isClient || authLoading || (user && selectedAddress === undefined)) {
         return (
              <div className="flex min-h-screen flex-col">
                 <SiteHeader />
@@ -155,21 +158,21 @@ export default function CheckoutPage() {
                                     {selectedAddress === "new" && (
                                         <div className="mt-4 p-4 border rounded-lg space-y-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="newAddress.street">Street</Label>
-                                                <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" required />
+                                                <Label htmlFor="newAddressStreet">Street</Label>
+                                                <Input name="newAddressStreet" id="newAddressStreet" placeholder="123 Main St" required />
                                             </div>
                                             <div className="grid md:grid-cols-3 gap-4">
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="newAddress.city">City</Label>
-                                                    <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" required />
+                                                    <Label htmlFor="newAddressCity">City</Label>
+                                                    <Input name="newAddressCity" id="newAddressCity" placeholder="Anytown" required />
                                                 </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="newAddress.state">State</Label>
-                                                    <Input name="newAddress.state" id="newAddress.state" placeholder="CA" required />
+                                                    <Label htmlFor="newAddressState">State</Label>
+                                                    <Input name="newAddressState" id="newAddressState" placeholder="CA" required />
                                                 </div>
                                                  <div className="space-y-2">
-                                                    <Label htmlFor="newAddress.zip">Zip Code</Label>
-                                                    <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" required />
+                                                    <Label htmlFor="newAddressZip">Zip Code</Label>
+                                                    <Input name="newAddressZip" id="newAddressZip" placeholder="90210" required />
                                                 </div>
                                             </div>
                                         </div>
@@ -291,3 +294,5 @@ export default function CheckoutPage() {
         </div>
     );
 }
+
+    

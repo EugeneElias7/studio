@@ -21,14 +21,18 @@ export const checkoutSchema = z.object({
     cartItems: z.string().min(1, "Cart items are missing."),
 }).superRefine((data, ctx) => {
     if (data.shippingAddress === 'new') {
-        const result = addressSchema.safeParse(data.newAddress);
-        if (!result.success) {
-            result.error.issues.forEach(issue => {
-                ctx.addIssue({
-                    ...issue,
-                    path: ['newAddress', ...issue.path],
-                });
-            });
+        // Since the fields are flattened (e.g., newAddressStreet), we need to check them on the main data object
+        if (!data.newAddress?.street) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddressStreet'], message: 'Street is required for a new address.' });
+        }
+        if (!data.newAddress?.city) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddressCity'], message: 'City is required for a new address.' });
+        }
+        if (!data.newAddress?.state) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddressState'], message: 'State is required for a new address.' });
+        }
+        if (!data.newAddress?.zip || data.newAddress.zip.length < 5) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddressZip'], message: 'A valid zip code is required for a new address.' });
         }
     }
 
@@ -47,3 +51,5 @@ export const checkoutSchema = z.object({
         }
     }
 });
+
+    

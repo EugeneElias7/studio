@@ -19,57 +19,31 @@ import type { Order } from "@/lib/types";
 export default function CheckoutSuccessPage() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
-    const { user, loading: authLoading, refreshUserData } = useAuth();
-    const [order, setOrder] = useState<Order | undefined>(undefined);
-    const [pageLoading, setPageLoading] = useState(true);
+    const { user, loading: authLoading } = useAuth();
+    const [order, setOrder] = useState<Order | null>(null);
+    const [loading, setLoading] = useState(true);
 
-     const findOrderInUser = useCallback((currentUser: typeof user) => {
-        if (currentUser && orderId) {
-            // Firestore might add the order to the user object, but we get the ID from the URL param.
-            // So we need to query all orders to find the one with the matching ID.
-            const foundOrder = currentUser.orders.find(o => o.id === orderId);
-            if (foundOrder) {
-                setOrder(foundOrder);
-                setPageLoading(false);
-                return true;
-            }
-        }
-        return false;
-    }, [orderId]);
-
+    const findOrder = useCallback((currentUser: typeof user, currentOrderId: string | null) => {
+        if (!currentUser || !currentOrderId) return null;
+        return currentUser.orders.find(o => o.id === currentOrderId) || null;
+    }, []);
 
     useEffect(() => {
-        // If user data is already loaded, try to find the order.
-        if (!authLoading && user && findOrderInUser(user)) {
-            return;
+        // The user object is now up-to-date thanks to refreshUserData in the checkout page
+        // We can now safely find the order
+        if (user && orderId) {
+            const foundOrder = findOrder(user, orderId);
+            setOrder(foundOrder);
         }
+        setLoading(false);
+    }, [user, orderId, findOrder]);
 
-        // If user data is still loading or order not found,
-        // set up a refresh mechanism.
-        if (orderId) {
-             // We need to refresh user data to get the latest order
-            refreshUserData().finally(() => {
-                setPageLoading(false);
-                // After refresh, the user object in context will update,
-                // and the useEffect below will run.
-            });
-        } else {
-            setPageLoading(false);
-        }
-    }, [authLoading, user, orderId, findOrderInUser, refreshUserData]);
-
-    useEffect(() => {
-        // This effect runs when the user object is updated by the refreshUserData call.
-        if(user && !order) {
-            findOrderInUser(user);
-        }
-    }, [user, order, findOrderInUser]);
 
     const getProductDetails = (name: string) => {
         return products.find(p => p.name === name);
     }
 
-    if (pageLoading || authLoading) {
+    if (loading || authLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
                 <SiteHeader />
@@ -89,7 +63,7 @@ export default function CheckoutSuccessPage() {
                     <Card className="max-w-md mx-auto text-center">
                         <CardHeader>
                             <CardTitle>Order Not Found</CardTitle>
-                            <CardDescription>We couldn't find the details for this order. It might still be processing. Please check your order history shortly.</CardDescription>
+                            <CardDescription>We couldn't find the details for this order. Please check your order history shortly.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <Button asChild variant="outline">
@@ -172,3 +146,5 @@ export default function CheckoutSuccessPage() {
         </div>
     )
 }
+
+    

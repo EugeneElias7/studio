@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { checkoutSchema } from '@/lib/validation';
 import { cookies } from 'next/headers';
-import { doc, updateDoc, addDoc, collection, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, arrayUnion, getDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order, Address, UserProfile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -33,25 +33,26 @@ const processPayment = (
 };
 
 export async function placeOrder(prevState: FormState, formData: FormData): Promise<FormState> {
-  try {
-    const rawData = Object.fromEntries(formData.entries());
+  const rawData = Object.fromEntries(formData);
+  
+  // Manually construct the data object for validation
+  const validationData = {
+    ...rawData,
+    newAddress: {
+      street: rawData.newAddressStreet,
+      city: rawData.newAddressCity,
+      state: rawData.newAddressState,
+      zip: rawData.newAddressZip,
+    },
+  };
 
-    // Manually construct the nested newAddress object for validation
-    const validationData = {
-      ...rawData,
-      newAddress: {
-        street: rawData['newAddress.street'],
-        city: rawData['newAddress.city'],
-        state: rawData['newAddress.state'],
-        zip: rawData['newAddress.zip'],
-      },
-    };
-    
+  try {
     const validatedData = checkoutSchema.safeParse(validationData);
 
     if (!validatedData.success) {
       console.error('Validation Errors:', validatedData.error.flatten().fieldErrors);
-      const firstError = Object.values(validatedData.error.flatten().fieldErrors)[0]?.[0];
+      const firstError = Object.values(validatedData.error.flatten().fieldErrors)[0]?.[0] 
+                       || Object.values(validatedData.error.flatten().formErrors)[0];
       return { success: false, error: firstError || 'Invalid form data. Please check your entries.' };
     }
 
@@ -74,31 +75,25 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
         return { success: false, error: 'Your cart is empty.' };
     }
 
-    let finalShippingAddress: Address;
     const userDocRef = doc(db, 'users', userId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) {
+        return { success: false, error: 'User profile not found.' };
+    }
+    const userProfile = userDocSnap.data() as UserProfile;
+
+    let finalShippingAddress: Address;
 
     // --- Address Handling ---
     if (shippingAddress === 'new' && newAddress) {
         const newAddressWithId: Address = {
             id: `addr_${Date.now()}`,
             ...newAddress,
-            isDefault: false // Logic to set a new address as default could be added here
+            isDefault: false 
         };
         finalShippingAddress = newAddressWithId;
-        
-        // Add new address to user's profile in Firestore
-        await updateDoc(userDocRef, {
-            addresses: arrayUnion(finalShippingAddress)
-        });
     } else {
-        // Fetch user data to find the selected existing address
-        const userDocSnap = await getDoc(userDocRef);
-        if (!userDocSnap.exists()) {
-             return { success: false, error: 'User profile not found.' };
-        }
-        const userProfile = userDocSnap.data() as UserProfile;
         const selectedAddress = userProfile.addresses.find(addr => addr.id === shippingAddress);
-
         if (!selectedAddress) {
             return { success: false, error: 'Selected shipping address not found.'};
         }
@@ -119,7 +114,20 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
       paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit Card',
     };
 
-    const orderDocRef = await addDoc(collection(db, 'orders'), orderData);
+    const batch = writeBatch(db);
+
+    // 1. Add the new order
+    const orderDocRef = doc(collection(db, 'orders'));
+    batch.set(orderDocRef, orderData);
+    
+    // 2. Add new address to user's profile if applicable
+    if (shippingAddress === 'new') {
+        batch.update(userDocRef, {
+            addresses: arrayUnion(finalShippingAddress)
+        });
+    }
+
+    await batch.commit();
     
     // --- Clear Cart ---
     cookies().set('cartItems', '[]', { maxAge: -1, path: '/' });
@@ -134,6 +142,12 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
 
   } catch (error) {
     console.error('Checkout Error:', error);
+    // Be careful not to expose sensitive error details to the client
+    if (error instanceof z.ZodError) {
+        return { success: false, error: 'Validation failed on the server.'}
+    }
     return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
 }
+
+    
