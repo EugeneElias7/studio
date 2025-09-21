@@ -28,24 +28,23 @@ const processPayment = (
 };
 
 export async function placeOrder(prevState: FormState, formData: FormData): Promise<FormState> {
-  const rawData = Object.fromEntries(formData);
-  
-  // Manually construct the nested object for validation from the flat FormData
-  const validationData = {
-    ...rawData,
-    newAddress: {
-      street: rawData.newAddressStreet,
-      city: rawData.newAddressCity,
-      state: rawData.newAddressState,
-      zip: rawData.newAddressZip,
-    },
-  };
-
   try {
+    const rawData = Object.fromEntries(formData);
+    
+    // Manually construct the nested object for validation from the flat FormData
+    const validationData = {
+      ...rawData,
+      newAddress: {
+        street: rawData.newAddressStreet,
+        city: rawData.newAddressCity,
+        state: rawData.newAddressState,
+        zip: rawData.newAddressZip,
+      },
+    };
+
     const validatedData = checkoutSchema.safeParse(validationData);
 
     if (!validatedData.success) {
-      // Return the first validation error found
       const firstError = Object.values(validatedData.error.flatten().fieldErrors)[0]?.[0];
       return { success: false, error: firstError || 'Invalid form data. Please check your entries.' };
     }
@@ -137,15 +136,13 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
 
     return { success: true, orderId: orderDocRef.id };
 
-  } catch (error) {
-    console.error('Checkout Error:', error);
-    if (error instanceof z.ZodError) {
-        return { success: false, error: 'Validation failed on the server.'}
-    }
-    // Check for Firebase permissions error
-    if (error instanceof Error && (error.message.includes('permission-denied') || error.message.includes('PERMISSION_DENIED'))) {
-        return { success: false, error: 'Permission denied. Please check Firestore security rules.' };
-    }
-    return { success: false, error: 'An unexpected error occurred during order placement. Please try again.' };
+  } catch (error: any) {
+    console.error('CRITICAL CHECKOUT ERROR:', error);
+    // Return a more specific error message to the client
+    const errorMessage = error.message || 'An unknown error occurred.';
+    return { 
+      success: false, 
+      error: `Server-side failure: ${errorMessage}. Please check the server logs for details.` 
+    };
   }
 }
