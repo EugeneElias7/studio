@@ -1,4 +1,3 @@
-
 'use client'
 
 import { SiteHeader } from "@/components/layout/site-header";
@@ -40,7 +39,7 @@ export default function CheckoutSuccessPage() {
             const foundOrder = findOrderInUser(user, orderId);
             setOrder(foundOrder);
             setLoading(false);
-        } else {
+        } else if (!authLoading) {
             // Handle cases where user or orderId is missing after auth is done
             setLoading(false);
         }

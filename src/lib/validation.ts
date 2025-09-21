@@ -1,4 +1,3 @@
-
 "use client";
 import * as z from "zod";
 
@@ -11,7 +10,7 @@ export const addressSchema = z.object({
 
 export const checkoutSchema = z.object({
     userId: z.string().min(1, "User ID is missing."),
-    cartItems: z.string().min(1, "Cart items are missing."),
+    cartItems: z.string().min(3, "Cart items are missing."), // JSON array "[]" is 2 chars
     shippingAddress: z.string().min(1, "Please select a shipping address"),
     newAddress: addressSchema.optional(),
     paymentMethod: z.enum(["creditCard", "cod"]),
@@ -24,7 +23,6 @@ export const checkoutSchema = z.object({
         const result = addressSchema.safeParse(data.newAddress);
         if (!result.success) {
             result.error.issues.forEach(issue => {
-                // Prepend 'newAddress' to the path to match form input names
                 ctx.addIssue({
                     ...issue,
                     path: [('newAddress' + issue.path[0].charAt(0).toUpperCase() + issue.path[0].slice(1)) as any],

@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -144,7 +143,7 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
         return { success: false, error: 'Validation failed on the server.'}
     }
     // Check for Firebase permissions error
-    if (error instanceof Error && error.message.includes('permission-denied')) {
+    if (error instanceof Error && (error.message.includes('permission-denied') || error.message.includes('PERMISSION_DENIED'))) {
         return { success: false, error: 'Permission denied. Please check Firestore security rules.' };
     }
     return { success: false, error: 'An unexpected error occurred during order placement. Please try again.' };
