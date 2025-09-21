@@ -40,6 +40,12 @@ export default function CheckoutPage() {
     const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined);
     const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
+    // State for new address form
+    const [newStreet, setNewStreet] = useState("");
+    const [newCity, setNewCity] = useState("");
+    const [newState, setNewState] = useState("");
+    const [newZip, setNewZip] = useState("");
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -163,20 +169,20 @@ export default function CheckoutPage() {
                                         <div className="mt-4 p-4 border rounded-lg space-y-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="newAddressStreet">Street</Label>
-                                                <Input name="newAddressStreet" id="newAddressStreet" placeholder="123 Main St" required />
+                                                <Input name="newAddressStreet" id="newAddressStreet" placeholder="123 Main St" value={newStreet} onChange={(e) => setNewStreet(e.target.value)} required />
                                             </div>
                                             <div className="grid md:grid-cols-3 gap-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="newAddressCity">City</Label>
-                                                    <Input name="newAddressCity" id="newAddressCity" placeholder="Anytown" required />
+                                                    <Input name="newAddressCity" id="newAddressCity" placeholder="Anytown" value={newCity} onChange={(e) => setNewCity(e.target.value)} required />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <Label htmlFor="newAddressState">State</Label>
-                                                    <Input name="newAddressState" id="newAddressState" placeholder="CA" required />
+                                                    <Input name="newAddressState" id="newAddressState" placeholder="CA" value={newState} onChange={(e) => setNewState(e.target.value)} required />
                                                 </div>
                                                  <div className="space-y-2">
                                                     <Label htmlFor="newAddressZip">Zip Code</Label>
-                                                    <Input name="newAddressZip" id="newAddressZip" placeholder="90210" required />
+                                                    <Input name="newAddressZip" id="newAddressZip" placeholder="90210" value={newZip} onChange={(e) => setNewZip(e.target.value)} required />
                                                 </div>
                                             </div>
                                         </div>
@@ -296,6 +302,5 @@ export default function CheckoutPage() {
             <SiteFooter />
         </div>
     );
-}
 
     
