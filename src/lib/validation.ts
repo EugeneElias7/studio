@@ -21,32 +21,29 @@ export const checkoutSchema = z.object({
     cartItems: z.string().min(1, "Cart items are missing."),
 }).superRefine((data, ctx) => {
     if (data.shippingAddress === 'new') {
-        if (!data.newAddress?.street) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddress.street'], message: 'Street is required for a new address.' });
-        }
-        if (!data.newAddress?.city) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddress.city'], message: 'City is required for a new address.' });
-        }
-        if (!data.newAddress?.state) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddress.state'], message: 'State is required for a new address.' });
-        }
-        if (!data.newAddress?.zip) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['newAddress.zip'], message: 'Zip code is required for a new address.' });
+        const result = addressSchema.safeParse(data.newAddress);
+        if (!result.success) {
+            result.error.issues.forEach(issue => {
+                ctx.addIssue({
+                    ...issue,
+                    path: ['newAddress', ...issue.path],
+                });
+            });
         }
     }
 
     if (data.paymentMethod === 'creditCard') {
-        if (!data.cardholderName) {
+        if (!data.cardholderName || data.cardholderName.trim().length < 2) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cardholderName'], message: 'Cardholder name is required.' });
         }
         if (!data.cardNumber || !/^\d{16}$/.test(data.cardNumber)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cardNumber'], message: 'Card number must be 16 digits.' });
         }
         if (!data.expiryDate || !/^(0[1-9]|1[0-2])\/\d{2}$/.test(data.expiryDate)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiryDate'], message: 'Invalid expiry date (MM/YY).' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['expiryDate'], message: 'Expiry date must be MM/YY.' });
         }
         if (!data.cvv || !/^\d{3,4}$/.test(data.cvv)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cvv'], message: 'CVV must be 3-4 digits.' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['cvv'], message: 'CVV must be 3 or 4 digits.' });
         }
     }
 });
