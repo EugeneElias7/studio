@@ -1,4 +1,5 @@
 
+
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type Product = {
@@ -44,6 +45,7 @@ export type Order = {
   total: number;
   shippingAddress: Address;
   userId: string;
+  paymentMethod: 'Credit Card' | 'Cash on Delivery';
 };
 
 export type UserProfile = {

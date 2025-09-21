@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CreditCard, Truck, AlertCircle, Loader2 } from "lucide-react";
+import { CreditCard, Truck, AlertCircle, Loader2, Wallet } from "lucide-react";
 import { placeOrder as placeOrderAction } from "./actions";
 import { useRouter } from "next/navigation";
 
@@ -38,6 +38,7 @@ export default function CheckoutPage() {
     const [isClient, setIsClient] = useState(false);
     
     const [selectedAddress, setSelectedAddress] = useState(user?.addresses?.find(a => a.isDefault)?.id || "new");
+    const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
     useEffect(() => {
         setIsClient(true);
@@ -146,52 +147,83 @@ export default function CheckoutPage() {
                                             <div className="mt-4 p-4 border rounded-lg space-y-4">
                                                 <div className="space-y-2">
                                                     <Label htmlFor="newAddress.street">Street</Label>
-                                                    <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" required />
+                                                    <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" />
                                                 </div>
                                                 <div className="grid md:grid-cols-3 gap-4">
                                                     <div className="space-y-2">
                                                         <Label htmlFor="newAddress.city">City</Label>
-                                                        <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" required />
+                                                        <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" />
                                                     </div>
                                                     <div className="space-y-2">
                                                         <Label htmlFor="newAddress.state">State</Label>
-                                                        <Input name="newAddress.state" id="newAddress.state" placeholder="CA" required />
+                                                        <Input name="newAddress.state" id="newAddress.state" placeholder="CA" />
                                                     </div>
                                                      <div className="space-y-2">
                                                         <Label htmlFor="newAddress.zip">Zip Code</Label>
-                                                        <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" required />
+                                                        <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" />
                                                     </div>
                                                 </div>
                                             </div>
                                         )}
                                     </CardContent>
                                 </Card>
-
+                                
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
+                                        <CardTitle>Payment Method</CardTitle>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="cardholderName">Cardholder Name</Label>
-                                            <Input name="cardholderName" id="cardholderName" placeholder="John Doe" required defaultValue={user.displayName ?? ""} />
-                                        </div>
-                                         <div className="space-y-2">
-                                            <Label htmlFor="cardNumber">Card Number</Label>
-                                            <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" required />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="expiryDate">Expiry Date</Label>
-                                                <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" required />
+                                    <CardContent>
+                                        <RadioGroup name="paymentMethod" onValueChange={setPaymentMethod} value={paymentMethod} className="space-y-4">
+                                             <div className="flex items-center space-x-3 space-y-0">
+                                                <RadioGroupItem value="creditCard" id="creditCard" />
+                                                <Label htmlFor="creditCard" className="font-normal w-full cursor-pointer">
+                                                    <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
+                                                        <CreditCard className="h-5 w-5" />
+                                                        <span>Credit Card</span>
+                                                    </div>
+                                                </Label>
                                             </div>
-                                             <div className="space-y-2">
-                                                <Label htmlFor="cvv">CVV</Label>
-                                                <Input name="cvv" id="cvv" placeholder="123" required />
+                                            <div className="flex items-center space-x-3 space-y-0">
+                                                <RadioGroupItem value="cod" id="cod" />
+                                                <Label htmlFor="cod" className="font-normal w-full cursor-pointer">
+                                                    <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
+                                                        <Wallet className="h-5 w-5" />
+                                                        <span>Cash on Delivery</span>
+                                                    </div>
+                                                </Label>
                                             </div>
-                                        </div>
+                                        </RadioGroup>
                                     </CardContent>
                                 </Card>
+
+
+                                {paymentMethod === 'creditCard' && (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="cardholderName">Cardholder Name</Label>
+                                                <Input name="cardholderName" id="cardholderName" placeholder="John Doe" defaultValue={user.displayName ?? ""} />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="cardNumber">Card Number</Label>
+                                                <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="expiryDate">Expiry Date</Label>
+                                                    <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="cvv">CVV</Label>
+                                                    <Input name="cvv" id="cvv" placeholder="123" />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
 
                                 {state.success === false && state.error && (
                                     <Alert variant="destructive">
@@ -251,5 +283,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-    

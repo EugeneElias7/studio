@@ -19,25 +19,29 @@ import type { Order } from "@/lib/types";
 export default function CheckoutSuccessPage() {
     const searchParams = useSearchParams();
     const orderId = searchParams.get('orderId');
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, refreshUserData } = useAuth();
     const [order, setOrder] = useState<Order | undefined>(undefined);
     const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        if (!authLoading && user && orderId) {
+        // We need to refresh user data to get the latest order
+        refreshUserData().finally(() => {
+             setPageLoading(false);
+        });
+    }, [refreshUserData]);
+
+    useEffect(() => {
+        if (user && orderId) {
             const foundOrder = user.orders.find(o => o.id === orderId);
             setOrder(foundOrder);
-            setPageLoading(false);
-        } else if (!authLoading) {
-            setPageLoading(false);
         }
-    }, [user, orderId, authLoading]);
+    }, [user, orderId]);
 
     const getProductDetails = (name: string) => {
         return products.find(p => p.name === name);
     }
 
-    if (pageLoading) {
+    if (pageLoading || authLoading) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
                 <SiteHeader />
@@ -95,6 +99,10 @@ export default function CheckoutSuccessPage() {
                                <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Order Date</span>
                                     <span className="font-medium">{new Date(order.date).toLocaleDateString()}</span>
+                               </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Payment Method</span>
+                                    <span className="font-medium">{order.paymentMethod}</span>
                                </div>
                                <Separator />
                                 <div className="space-y-4">

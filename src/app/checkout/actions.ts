@@ -22,6 +22,10 @@ const processPayment = (
     setTimeout(() => {
       // In a real app, you would integrate with a payment provider like Stripe
       console.log('Processing payment for:', values.cardholderName);
+      if (!values.cardholderName || !values.cardNumber) {
+          resolve({ success: false, error: 'Invalid card details.'});
+          return;
+      }
       resolve({ success: true });
     }, 1500);
   });
@@ -46,19 +50,22 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
 
     if (!validatedData.success) {
       console.error('Validation Errors:', validatedData.error.flatten().fieldErrors);
-      return { success: false, error: 'Invalid form data. Please check your entries.' };
+      const firstError = Object.values(validatedData.error.flatten().fieldErrors)[0]?.[0];
+      return { success: false, error: firstError || 'Invalid form data. Please check your entries.' };
     }
 
-    const { shippingAddress, newAddress, userId, cartItems: cartItemsJSON } = validatedData.data;
+    const { shippingAddress, newAddress, userId, cartItems: cartItemsJSON, paymentMethod } = validatedData.data;
     
     if (!userId) {
         return { success: false, error: 'User is not authenticated.' };
     }
 
     // --- Payment Processing ---
-    const paymentResult = await processPayment(validatedData.data);
-    if (!paymentResult.success) {
-      return { success: false, error: paymentResult.error || 'Payment failed.' };
+    if (paymentMethod === 'creditCard') {
+      const paymentResult = await processPayment(validatedData.data);
+      if (!paymentResult.success) {
+        return { success: false, error: paymentResult.error || 'Payment failed.' };
+      }
     }
 
     const cartItems = JSON.parse(cartItemsJSON as string);
@@ -108,6 +115,7 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
       items: cartItems.map(({ id, imageUrl, ...rest }: any) => rest),
       total: total,
       shippingAddress: finalShippingAddress,
+      paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit Card',
     };
 
     const orderDocRef = await addDoc(collection(db, 'orders'), orderData);
