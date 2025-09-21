@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { doc, updateDoc, addDoc, collection, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order, Address, UserProfile } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 type FormState = {
   success: boolean;
@@ -112,7 +113,7 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
       userId: userId,
       date: new Date().toISOString(),
       status: 'Processing',
-      items: cartItems.map(({ id, imageUrl, ...rest }: any) => rest),
+      items: cartItems.map(({ id, imageUrl, ...rest }: any) => rest), // Remove id and imageUrl from items
       total: total,
       shippingAddress: finalShippingAddress,
       paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit Card',
@@ -121,7 +122,11 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
     const orderDocRef = await addDoc(collection(db, 'orders'), orderData);
     
     // --- Clear Cart ---
-    cookies().set('cartItems', '[]', { path: '/' });
+    cookies().set('cartItems', '[]', { maxAge: -1, path: '/' });
+
+    // Revalidate paths to reflect changes
+    revalidatePath('/checkout');
+    revalidatePath('/account/orders');
 
     return { success: true, orderId: orderDocRef.id };
 

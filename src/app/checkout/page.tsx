@@ -10,8 +10,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useActionState, useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect, useState } from "react";
+import { useActionState, useFormStatus } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -33,11 +33,13 @@ function SubmitButton({ cartTotal }: { cartTotal: number }) {
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
-    const [selectedAddress, setSelectedAddress] = useState(user?.addresses?.find(a => a.isDefault)?.id || "new");
+    // Set default selected address
+    const defaultAddress = user?.addresses?.find(a => a.isDefault)?.id || (user?.addresses?.length ? user.addresses[0].id : "new");
+    const [selectedAddress, setSelectedAddress] = useState(defaultAddress);
     const [paymentMethod, setPaymentMethod] = useState("creditCard");
 
     useEffect(() => {
@@ -54,7 +56,7 @@ export default function CheckoutPage() {
     }, [state, router, clearCart]);
 
 
-    if (!isClient) {
+    if (!isClient || authLoading) {
         return (
              <div className="flex min-h-screen flex-col">
                 <SiteHeader />
@@ -112,130 +114,120 @@ export default function CheckoutPage() {
                     </div>
                     <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight mb-8">Checkout</h1>
 
-                    <div className="grid lg:grid-cols-3 gap-12 items-start">
-                        <div className="lg:col-span-2">
-                            <form action={formAction} className="space-y-8">
-                                <input type="hidden" name="userId" value={user.uid} />
-                                <input type="hidden" name="cartItems" value={JSON.stringify(cartItems)} />
-                                
+                    <form action={formAction} className="grid lg:grid-cols-3 gap-12 items-start">
+                        <div className="lg:col-span-2 space-y-8">
+                            <input type="hidden" name="userId" value={user.uid} />
+                            <input type="hidden" name="cartItems" value={JSON.stringify(cartItems)} />
+                            
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Shipping Address</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <RadioGroup name="shippingAddress" onValueChange={setSelectedAddress} value={selectedAddress} className="space-y-4">
+                                        {user?.addresses?.map(addr => (
+                                            <div key={addr.id} className="flex items-center space-x-3 space-y-0">
+                                                <RadioGroupItem value={addr.id} id={addr.id} />
+                                                <Label htmlFor={addr.id} className="font-normal w-full cursor-pointer">
+                                                    <div className="border p-4 rounded-md hover:border-primary">
+                                                        <p className="font-medium">{addr.street}</p>
+                                                        <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.zip}</p>
+                                                    </div>
+                                                </Label>
+                                            </div>
+                                        ))}
+                                        <div className="flex items-center space-x-3 space-y-0">
+                                            <RadioGroupItem value="new" id="new-address" />
+                                            <Label htmlFor="new-address" className="font-normal w-full cursor-pointer">
+                                                <div className="border p-4 rounded-md hover:border-primary">Add a new address</div>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+
+                                    {selectedAddress === "new" && (
+                                        <div className="mt-4 p-4 border rounded-lg space-y-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="newAddress.street">Street</Label>
+                                                <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" required />
+                                            </div>
+                                            <div className="grid md:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="newAddress.city">City</Label>
+                                                    <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" required />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="newAddress.state">State</Label>
+                                                    <Input name="newAddress.state" id="newAddress.state" placeholder="CA" required />
+                                                </div>
+                                                 <div className="space-y-2">
+                                                    <Label htmlFor="newAddress.zip">Zip Code</Label>
+                                                    <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" required />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Payment Method</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <RadioGroup name="paymentMethod" onValueChange={setPaymentMethod} value={paymentMethod} className="space-y-4">
+                                         <div className="flex items-center space-x-3 space-y-0">
+                                            <RadioGroupItem value="creditCard" id="creditCard" />
+                                            <Label htmlFor="creditCard" className="font-normal w-full cursor-pointer">
+                                                <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
+                                                    <CreditCard className="h-5 w-5" />
+                                                    <span>Credit Card</span>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-3 space-y-0">
+                                            <RadioGroupItem value="cod" id="cod" />
+                                            <Label htmlFor="cod" className="font-normal w-full cursor-pointer">
+                                                <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
+                                                    <Wallet className="h-5 w-5" />
+                                                    <span>Cash on Delivery</span>
+                                                </div>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </CardContent>
+                            </Card>
+
+
+                            {paymentMethod === 'creditCard' && (
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Shipping Address</CardTitle>
+                                        <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
                                     </CardHeader>
-                                    <CardContent>
-                                        <RadioGroup name="shippingAddress" onValueChange={setSelectedAddress} value={selectedAddress} className="space-y-4">
-                                            {user?.addresses?.map(addr => (
-                                                <div key={addr.id} className="flex items-center space-x-3 space-y-0">
-                                                    <RadioGroupItem value={addr.id} id={addr.id} />
-                                                    <Label htmlFor={addr.id} className="font-normal w-full cursor-pointer">
-                                                        <div className="border p-4 rounded-md hover:border-primary">
-                                                            <p className="font-medium">{addr.street}</p>
-                                                            <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.zip}</p>
-                                                        </div>
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                            <div className="flex items-center space-x-3 space-y-0">
-                                                <RadioGroupItem value="new" id="new-address" />
-                                                <Label htmlFor="new-address" className="font-normal w-full cursor-pointer">
-                                                    <div className="border p-4 rounded-md hover:border-primary">Add a new address</div>
-                                                </Label>
-                                            </div>
-                                        </RadioGroup>
-
-                                        {selectedAddress === "new" && (
-                                            <div className="mt-4 p-4 border rounded-lg space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="newAddress.street">Street</Label>
-                                                    <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" />
-                                                </div>
-                                                <div className="grid md:grid-cols-3 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="newAddress.city">City</Label>
-                                                        <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="newAddress.state">State</Label>
-                                                        <Input name="newAddress.state" id="newAddress.state" placeholder="CA" />
-                                                    </div>
-                                                     <div className="space-y-2">
-                                                        <Label htmlFor="newAddress.zip">Zip Code</Label>
-                                                        <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                                
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Payment Method</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <RadioGroup name="paymentMethod" onValueChange={setPaymentMethod} value={paymentMethod} className="space-y-4">
-                                             <div className="flex items-center space-x-3 space-y-0">
-                                                <RadioGroupItem value="creditCard" id="creditCard" />
-                                                <Label htmlFor="creditCard" className="font-normal w-full cursor-pointer">
-                                                    <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
-                                                        <CreditCard className="h-5 w-5" />
-                                                        <span>Credit Card</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                            <div className="flex items-center space-x-3 space-y-0">
-                                                <RadioGroupItem value="cod" id="cod" />
-                                                <Label htmlFor="cod" className="font-normal w-full cursor-pointer">
-                                                    <div className="border p-4 rounded-md hover:border-primary flex items-center gap-3">
-                                                        <Wallet className="h-5 w-5" />
-                                                        <span>Cash on Delivery</span>
-                                                    </div>
-                                                </Label>
-                                            </div>
-                                        </RadioGroup>
-                                    </CardContent>
-                                </Card>
-
-
-                                {paymentMethod === 'creditCard' && (
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cardholderName">Cardholder Name</Label>
+                                            <Input name="cardholderName" id="cardholderName" placeholder="John Doe" defaultValue={user.displayName ?? ""} required />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cardNumber">Card Number</Label>
+                                            <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" required />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
-                                                <Label htmlFor="cardholderName">Cardholder Name</Label>
-                                                <Input name="cardholderName" id="cardholderName" placeholder="John Doe" defaultValue={user.displayName ?? ""} />
+                                                <Label htmlFor="expiryDate">Expiry Date</Label>
+                                                <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" required />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label htmlFor="cardNumber">Card Number</Label>
-                                                <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" />
+                                                <Label htmlFor="cvv">CVV</Label>
+                                                <Input name="cvv" id="cvv" placeholder="123" required />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="expiryDate">Expiry Date</Label>
-                                                    <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="cvv">CVV</Label>
-                                                    <Input name="cvv" id="cvv" placeholder="123" />
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
 
-                                {state.success === false && state.error && (
-                                    <Alert variant="destructive">
-                                        <AlertCircle className="h-4 w-4" />
-                                        <AlertTitle>Checkout Error</AlertTitle>
-                                        <AlertDescription>{state.error}</AlertDescription>
-                                    </Alert>
-                                )}
-                                <SubmitButton cartTotal={cartTotal} />
-                            </form>
                         </div>
-                        <div className="lg:col-span-1">
+                        <div className="lg:col-span-1 space-y-8">
                             <Card>
                                 <CardHeader>
                                     <CardTitle>Order Summary</CardTitle>
@@ -275,8 +267,16 @@ export default function CheckoutPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+                             {state.success === false && state.error && (
+                                <Alert variant="destructive">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertTitle>Checkout Error</AlertTitle>
+                                    <AlertDescription>{state.error}</AlertDescription>
+                                </Alert>
+                            )}
+                            <SubmitButton cartTotal={cartTotal} />
                         </div>
-                    </div>
+                    </form>
                 </div>
             </main>
             <SiteFooter />
