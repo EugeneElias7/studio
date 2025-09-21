@@ -25,8 +25,6 @@ export default function CheckoutSuccessPage() {
 
     const findOrderInUser = useCallback((currentUser: AppUser, currentOrderId: string | null) => {
         if (!currentUser || !currentOrderId) return null;
-        // The user object from useAuth now contains the latest orders
-        // The order ID from the URL is the document ID, which is the `id` on the order object.
         return currentUser.orders.find(o => o.id === currentOrderId) ?? null;
     }, []);
 

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -80,16 +81,30 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
 
     // --- Address Handling ---
     if (shippingAddress === 'new' && newAddress?.street) {
-        const newAddressWithId: Address = {
-            id: `addr_${Date.now()}`,
-            street: newAddress.street,
-            city: newAddress.city,
-            state: newAddress.state,
-            zip: newAddress.zip,
-            isDefault: false // New addresses are not made default automatically
-        };
-        finalShippingAddress = newAddressWithId;
-        shouldAddNewAddress = true;
+        const existingAddresses = userProfile.addresses || [];
+        
+        // Check for an existing identical address
+        const existingAddress = existingAddresses.find(addr => 
+            addr.street.toLowerCase() === newAddress.street.toLowerCase() &&
+            addr.city.toLowerCase() === newAddress.city.toLowerCase() &&
+            addr.state.toLowerCase() === newAddress.state.toLowerCase() &&
+            addr.zip === newAddress.zip
+        );
+
+        if (existingAddress) {
+            finalShippingAddress = existingAddress;
+        } else {
+            const newAddressWithId: Address = {
+                id: `addr_${Date.now()}`,
+                street: newAddress.street,
+                city: newAddress.city,
+                state: newAddress.state,
+                zip: newAddress.zip,
+                isDefault: false // New addresses are not made default automatically
+            };
+            finalShippingAddress = newAddressWithId;
+            shouldAddNewAddress = true;
+        }
     } else {
         const selectedAddress = userProfile.addresses.find(addr => addr.id === shippingAddress);
         if (!selectedAddress) {
