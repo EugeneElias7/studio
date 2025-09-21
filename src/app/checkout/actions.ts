@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { checkoutSchema } from '@/lib/validation';
 import { cookies } from 'next/headers';
-import { doc, getDoc, writeBatch, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Order, Address, UserProfile } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
@@ -22,13 +22,6 @@ const processPayment = (
   return new Promise((resolve) => {
     setTimeout(() => {
       console.log('Processing payment for:', values.cardholderName);
-      // Basic check for card details for simulation purposes
-      if (values.paymentMethod === 'creditCard') {
-          if (!values.cardholderName || !values.cardNumber || !values.expiryDate || !values.cvv) {
-              resolve({ success: false, error: 'Invalid card details provided.'});
-              return;
-          }
-      }
       // Simulate a successful payment
       resolve({ success: true });
     }, 1000);

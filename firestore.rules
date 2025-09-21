@@ -4,20 +4,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // USERS
-    // Users can read and update their own user document
-    // Users can be created by anyone who is authenticated
+    // Users can read and update their own profile.
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      allow read, update: if request.auth.uid == userId;
     }
 
-    // ORDERS
-    // Users can create orders for themselves
-    // Users can only read their own orders
+    // Authenticated users can create orders.
+    // Users can only read their own orders.
     match /orders/{orderId} {
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if resource.data.userId == request.auth.uid;
     }
   }
 }
