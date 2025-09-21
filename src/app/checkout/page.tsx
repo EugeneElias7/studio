@@ -10,18 +10,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useFormStatus } from "react-dom";
-import { useActionState, useEffect, useState } from "react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useFormStatus, useActionState, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreditCard, Truck, AlertCircle, Loader2 } from "lucide-react";
 import { placeOrder as placeOrderAction } from "./actions";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { checkoutSchema } from "@/lib/validation";
-import type { z } from "zod";
 import { useRouter } from "next/navigation";
 
 
@@ -41,42 +36,14 @@ export default function CheckoutPage() {
     const router = useRouter();
     const [isClient, setIsClient] = useState(false);
     
+    const [selectedAddress, setSelectedAddress] = useState(user?.addresses?.find(a => a.isDefault)?.id || "new");
+
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null });
+    const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null, orderId: null });
 
-    const form = useForm<z.infer<typeof checkoutSchema>>({
-        resolver: zodResolver(checkoutSchema),
-        defaultValues: {
-            userId: user?.uid || "",
-            shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
-            newAddress: { street: "", city: "", state: "", zip: "" },
-            cardholderName: user?.displayName || "",
-            cardNumber: "",
-            expiryDate: "",
-            cvv: "",
-            cartItems: JSON.stringify(cartItems),
-        },
-    });
-    
-    // Update form default values when user or cartItems change
-    useEffect(() => {
-        if (isClient) {
-            form.reset({
-                userId: user?.uid || "",
-                shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
-                newAddress: { street: "", city: "", state: "", zip: "" },
-                cardholderName: user?.displayName || "",
-                cardNumber: "",
-                expiryDate: "",
-                cvv: "",
-                cartItems: JSON.stringify(cartItems),
-            });
-        }
-    }, [user, cartItems, isClient, form]);
-    
     useEffect(() => {
         if (state.success && state.orderId) {
             clearCart(); // Clear cart from client-side context
@@ -145,113 +112,95 @@ export default function CheckoutPage() {
 
                     <div className="grid lg:grid-cols-3 gap-12 items-start">
                         <div className="lg:col-span-2">
-                             <Form {...form}>
-                                <form action={formAction} className="space-y-8">
-                                    <input type="hidden" name="userId" value={form.watch('userId')} />
-                                    <input type="hidden" name="cartItems" value={form.watch('cartItems')} />
-                                    
-                                    {/* These are needed for react-hook-form to track, but will be submitted via hidden inputs */}
-                                    <input type="hidden" name="shippingAddress" value={form.watch('shippingAddress')} />
-                                    <input type="hidden" name="newAddress.street" value={form.watch('newAddress.street')} />
-                                    <input type="hidden" name="newAddress.city" value={form.watch('newAddress.city')} />
-                                    <input type="hidden" name="newAddress.state" value={form.watch('newAddress.state')} />
-                                    <input type="hidden" name="newAddress.zip" value={form.watch('newAddress.zip')} />
-                                    <input type="hidden" name="cardholderName" value={form.watch('cardholderName')} />
-                                    <input type="hidden" name="cardNumber" value={form.watch('cardNumber')} />
-                                    <input type="hidden" name="expiryDate" value={form.watch('expiryDate')} />
-                                    <input type="hidden" name="cvv" value={form.watch('cvv')} />
+                            <form action={formAction} className="space-y-8">
+                                <input type="hidden" name="userId" value={user.uid} />
+                                <input type="hidden" name="cartItems" value={JSON.stringify(cartItems)} />
+                                
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Shipping Address</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <RadioGroup name="shippingAddress" onValueChange={setSelectedAddress} value={selectedAddress} className="space-y-4">
+                                            {user?.addresses?.map(addr => (
+                                                <div key={addr.id} className="flex items-center space-x-3 space-y-0">
+                                                    <RadioGroupItem value={addr.id} id={addr.id} />
+                                                    <Label htmlFor={addr.id} className="font-normal w-full cursor-pointer">
+                                                        <div className="border p-4 rounded-md hover:border-primary">
+                                                            <p className="font-medium">{addr.street}</p>
+                                                            <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.zip}</p>
+                                                        </div>
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                            <div className="flex items-center space-x-3 space-y-0">
+                                                <RadioGroupItem value="new" id="new-address" />
+                                                <Label htmlFor="new-address" className="font-normal w-full cursor-pointer">
+                                                    <div className="border p-4 rounded-md hover:border-primary">Add a new address</div>
+                                                </Label>
+                                            </div>
+                                        </RadioGroup>
 
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2"><Truck className="h-5 w-5" /> Shipping Address</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <FormField
-                                                control={form.control}
-                                                name="shippingAddress"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="space-y-4">
-                                                            {user?.addresses?.map(addr => (
-                                                                <FormItem key={addr.id} className="flex items-center space-x-3 space-y-0">
-                                                                    <FormControl>
-                                                                        <RadioGroupItem value={addr.id} />
-                                                                    </FormControl>
-                                                                    <FormLabel className="font-normal w-full cursor-pointer">
-                                                                        <div className="border p-4 rounded-md hover:border-primary">
-                                                                            <p className="font-medium">{addr.street}</p>
-                                                                            <p className="text-sm text-muted-foreground">{addr.city}, {addr.state} {addr.zip}</p>
-                                                                        </div>
-                                                                    </FormLabel>
-                                                                </FormItem>
-                                                            ))}
-                                                            <FormItem className="flex items-center space-x-3 space-y-0">
-                                                                <FormControl>
-                                                                    <RadioGroupItem value="new" />
-                                                                </FormControl>
-                                                                <FormLabel className="font-normal w-full cursor-pointer">
-                                                                     <div className="border p-4 rounded-md hover:border-primary">Add a new address</div>
-                                                                </FormLabel>
-                                                            </FormItem>
-                                                        </RadioGroup>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
-
-                                            {form.watch("shippingAddress") === "new" && (
-                                                <div className="mt-4 p-4 border rounded-lg space-y-4">
-                                                    <FormField control={form.control} name="newAddress.street" render={({ field }) => (
-                                                        <FormItem><FormLabel>Street</FormLabel><FormControl><Input placeholder="123 Main St" {...field} /></FormControl><FormMessage /></FormItem>
-                                                    )} />
-                                                    <div className="grid md:grid-cols-3 gap-4">
-                                                        <FormField control={form.control} name="newAddress.city" render={({ field }) => (
-                                                            <FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="Anytown" {...field} /></FormControl><FormMessage /></FormItem>
-                                                        )} />
-                                                        <FormField control={form.control} name="newAddress.state" render={({ field }) => (
-                                                            <FormItem><FormLabel>State</FormLabel><FormControl><Input placeholder="CA" {...field} /></FormControl><FormMessage /></FormItem>
-                                                        )} />
-                                                        <FormField control={form.control} name="newAddress.zip" render={({ field }) => (
-                                                            <FormItem><FormLabel>Zip Code</FormLabel><FormControl><Input placeholder="90210" {...field} /></FormControl><FormMessage /></FormItem>
-                                                        )} />
+                                        {selectedAddress === "new" && (
+                                            <div className="mt-4 p-4 border rounded-lg space-y-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="newAddress.street">Street</Label>
+                                                    <Input name="newAddress.street" id="newAddress.street" placeholder="123 Main St" required />
+                                                </div>
+                                                <div className="grid md:grid-cols-3 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="newAddress.city">City</Label>
+                                                        <Input name="newAddress.city" id="newAddress.city" placeholder="Anytown" required />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label htmlFor="newAddress.state">State</Label>
+                                                        <Input name="newAddress.state" id="newAddress.state" placeholder="CA" required />
+                                                    </div>
+                                                     <div className="space-y-2">
+                                                        <Label htmlFor="newAddress.zip">Zip Code</Label>
+                                                        <Input name="newAddress.zip" id="newAddress.zip" placeholder="90210" required />
                                                     </div>
                                                 </div>
-                                            )}
-                                        </CardContent>
-                                    </Card>
-
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4">
-                                            <FormField control={form.control} name="cardholderName" render={({ field }) => (
-                                                <FormItem><FormLabel>Cardholder Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="cardNumber" render={({ field }) => (
-                                                <FormItem><FormLabel>Card Number</FormLabel><FormControl><Input placeholder="•••• •••• •••• ••••" {...field} /></FormControl><FormMessage /></FormItem>
-                                            )} />
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <FormField control={form.control} name="expiryDate" render={({ field }) => (
-                                                    <FormItem><FormLabel>Expiry Date</FormLabel><FormControl><Input placeholder="MM/YY" {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
-                                                <FormField control={form.control} name="cvv" render={({ field }) => (
-                                                    <FormItem><FormLabel>CVV</FormLabel><FormControl><Input placeholder="123" {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
                                             </div>
-                                        </CardContent>
-                                    </Card>
+                                        )}
+                                    </CardContent>
+                                </Card>
 
-                                    {state.success === false && state.error && (
-                                        <Alert variant="destructive">
-                                            <AlertCircle className="h-4 w-4" />
-                                            <AlertTitle>Checkout Error</AlertTitle>
-                                            <AlertDescription>{state.error}</AlertDescription>
-                                        </Alert>
-                                    )}
-                                    <SubmitButton cartTotal={cartTotal} />
-                                </form>
-                            </Form>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2"><CreditCard className="h-5 w-5" /> Payment Details</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="cardholderName">Cardholder Name</Label>
+                                            <Input name="cardholderName" id="cardholderName" placeholder="John Doe" required defaultValue={user.displayName ?? ""} />
+                                        </div>
+                                         <div className="space-y-2">
+                                            <Label htmlFor="cardNumber">Card Number</Label>
+                                            <Input name="cardNumber" id="cardNumber" placeholder="•••• •••• •••• ••••" required />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="expiryDate">Expiry Date</Label>
+                                                <Input name="expiryDate" id="expiryDate" placeholder="MM/YY" required />
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="cvv">CVV</Label>
+                                                <Input name="cvv" id="cvv" placeholder="123" required />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {state.success === false && state.error && (
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertTitle>Checkout Error</AlertTitle>
+                                        <AlertDescription>{state.error}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <SubmitButton cartTotal={cartTotal} />
+                            </form>
                         </div>
                         <div className="lg:col-span-1">
                             <Card>
@@ -301,4 +250,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-

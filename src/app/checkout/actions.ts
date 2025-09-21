@@ -4,9 +4,9 @@
 import { z } from 'zod';
 import { checkoutSchema } from '@/lib/validation';
 import { cookies } from 'next/headers';
-import { doc, updateDoc, addDoc, collection, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Order, Address } from '@/lib/types';
+import type { Order, Address, UserProfile } from '@/lib/types';
 
 type FormState = {
   success: boolean;
@@ -16,7 +16,7 @@ type FormState = {
 
 // A mock function to simulate payment processing
 const processPayment = (
-  values: z.infer<typeof checkoutSchema>
+  values: any
 ): Promise<{ success: boolean; error?: string }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -31,8 +31,8 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
   try {
     const rawData = Object.fromEntries(formData.entries());
 
-    // Manually construct the nested newAddress object
-    const values = {
+    // Manually construct the nested newAddress object for validation
+    const validationData = {
       ...rawData,
       newAddress: {
         street: rawData['newAddress.street'],
@@ -41,8 +41,8 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
         zip: rawData['newAddress.zip'],
       },
     };
-
-    const validatedData = checkoutSchema.safeParse(values);
+    
+    const validatedData = checkoutSchema.safeParse(validationData);
 
     if (!validatedData.success) {
       console.error('Validation Errors:', validatedData.error.flatten().fieldErrors);
@@ -67,27 +67,34 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
     }
 
     let finalShippingAddress: Address;
+    const userDocRef = doc(db, 'users', userId);
 
     // --- Address Handling ---
     if (shippingAddress === 'new' && newAddress) {
         const newAddressWithId: Address = {
             id: `addr_${Date.now()}`,
             ...newAddress,
-            isDefault: false // Or logic to make it default
+            isDefault: false // Logic to set a new address as default could be added here
         };
         finalShippingAddress = newAddressWithId;
         
         // Add new address to user's profile in Firestore
-        const userDocRef = doc(db, 'users', userId);
         await updateDoc(userDocRef, {
             addresses: arrayUnion(finalShippingAddress)
         });
     } else {
-        // This part requires fetching the user's addresses.
-        // For simplicity, we assume the address details could be passed differently
-        // or fetched here. The current structure is a bit limited.
-        // Let's create a placeholder from the ID.
-        finalShippingAddress = { id: shippingAddress, street: 'N/A', city: 'N/A', state: 'N/A', zip: 'N/A', isDefault: false };
+        // Fetch user data to find the selected existing address
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+             return { success: false, error: 'User profile not found.' };
+        }
+        const userProfile = userDocSnap.data() as UserProfile;
+        const selectedAddress = userProfile.addresses.find(addr => addr.id === shippingAddress);
+
+        if (!selectedAddress) {
+            return { success: false, error: 'Selected shipping address not found.'};
+        }
+        finalShippingAddress = selectedAddress;
     }
 
 
