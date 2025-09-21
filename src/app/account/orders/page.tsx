@@ -5,25 +5,37 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Loader2, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { format } from "date-fns";
 
 export default function OrdersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !loading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isClient]);
 
-  if (loading || !user) {
+  const sortedOrders = useMemo(() => {
+    if (!user?.orders) return [];
+    // Create a new array before sorting to avoid mutating the original
+    return [...user.orders].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [user?.orders]);
+
+
+  if (!isClient || loading || !user) {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
@@ -46,14 +58,14 @@ export default function OrdersPage() {
             <h1 className="font-headline text-4xl md:text-5xl font-bold tracking-tight mb-8">My Orders</h1>
             
             <div className="space-y-8">
-                {user.orders && user.orders.length > 0 ? (
-                    user.orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(order => (
+                {sortedOrders.length > 0 ? (
+                    sortedOrders.map(order => (
                         <Card key={order.id}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <CardTitle>Order #{order.id.slice(-6)}</CardTitle>
-                                        <CardDescription>Date: {new Date(order.date).toLocaleDateString()}</CardDescription>
+                                        <CardDescription>Date: {format(new Date(order.date), 'PPP')}</CardDescription>
                                     </div>
                                     <Badge variant={order.status === 'Processing' ? 'secondary' : 'default'}>{order.status}</Badge>
                                 </div>

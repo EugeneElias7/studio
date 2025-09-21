@@ -21,7 +21,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutSchema } from "@/lib/validation";
 import type { z } from "zod";
-import { useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Order, Address } from "@/lib/types";
 
@@ -40,7 +40,12 @@ export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
     const { user, addOrder } = useAuth();
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
     
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
     const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null });
 
     const form = useForm<z.infer<typeof checkoutSchema>>({
@@ -54,17 +59,28 @@ export default function CheckoutPage() {
             cvv: "",
         },
     });
+
+    useEffect(() => {
+        if (user && isClient) {
+            form.reset({
+                shippingAddress: user?.addresses?.find(a => a.isDefault)?.id || "new",
+                newAddress: { street: "", city: "", state: "", zip: "" },
+                cardholderName: user.displayName || "",
+                cardNumber: "",
+                expiryDate: "",
+                cvv: "",
+            })
+        }
+    }, [user, isClient, form]);
     
-    // Handle order creation after server action is successful
     useEffect(() => {
         const createOrder = async () => {
-            if (!user) return;
+            if (!user || !isClient) return;
 
             const values = form.getValues();
             let shippingAddress: Address;
 
             if (values.shippingAddress === 'new') {
-                // Create a consistent ID on the client-side
                 shippingAddress = { id: `addr${Date.now()}`, ...values.newAddress!, isDefault: false };
             } else {
                 const foundAddress = user.addresses.find(a => a.id === values.shippingAddress);
@@ -78,7 +94,7 @@ export default function CheckoutPage() {
             const orderData: Omit<Order, 'id' | 'userId'> = {
                 date: new Date().toISOString(),
                 status: 'Processing',
-                items: cartItems.map(({ id, imageUrl, ...rest }) => rest), // Remove client-side only properties
+                items: cartItems.map(({ id, imageUrl, ...rest }) => rest),
                 total: cartTotal,
                 shippingAddress: shippingAddress,
             };
@@ -86,7 +102,7 @@ export default function CheckoutPage() {
             try {
                 const newOrder = await addOrder(orderData);
                 if (newOrder) {
-                    clearCart(); // Clear local cart state
+                    clearCart();
                     router.push(`/checkout/success?orderId=${newOrder.id}`);
                 } else {
                     console.error("Order creation failed on client.");
@@ -96,12 +112,24 @@ export default function CheckoutPage() {
             }
         };
 
-        if (state.success) {
+        if (state.success && isClient) {
             createOrder();
         }
-    }, [state.success, user, form, cartItems, cartTotal, addOrder, clearCart, router]);
+    }, [state.success, user, form, cartItems, cartTotal, addOrder, clearCart, router, isClient]);
 
 
+    if (!isClient) {
+        return (
+             <div className="flex min-h-screen flex-col">
+                <SiteHeader />
+                <main className="flex-1 flex items-center justify-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+    
     if (cartItems.length === 0) {
         return (
             <div className="flex min-h-screen flex-col">
@@ -292,5 +320,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-    

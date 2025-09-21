@@ -21,38 +21,43 @@ export default function CheckoutSuccessPage() {
     const orderId = searchParams.get('orderId');
     const { user, loading } = useAuth();
     const [order, setOrder] = useState<Order | null>(null);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        if (!loading && user && orderId) {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!loading && user && orderId && isClient) {
             const foundOrder = user.orders.find(o => o.id === orderId);
-            if (foundOrder) {
-                setOrder(foundOrder);
-            } else {
-                // If order not found in user's orders, it might still be loading or invalid
-                // For this example, we'll assume it's invalid if not found after loading
-                setOrder(null);
-            }
+            setOrder(foundOrder || null);
         }
-    }, [user, orderId, loading]);
+    }, [user, orderId, loading, isClient]);
 
-
-    if (loading || !order) {
+    if (!isClient || loading) {
         return (
             <div className="flex min-h-screen flex-col bg-muted/40">
                 <SiteHeader />
                 <main className="flex-1 flex items-center justify-center">
-                    {loading ? <Loader2 className="h-12 w-12 animate-spin text-primary" /> : <p>Order not found.</p>}
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </main>
                 <SiteFooter />
             </div>
         )
     }
 
-    if (!orderId) {
-        notFound();
+    if (!orderId || !order) {
+        return (
+            <div className="flex min-h-screen flex-col bg-muted/40">
+                <SiteHeader />
+                <main className="flex-1 flex items-center justify-center">
+                    <p>Order not found.</p>
+                </main>
+                <SiteFooter />
+            </div>
+        )
     }
     
-    // Function to get product details from the main product list
     const getProductDetails = (name: string) => {
         return products.find(p => p.name === name);
     }
@@ -76,7 +81,7 @@ export default function CheckoutSuccessPage() {
                             <div className="border border-border rounded-lg p-4 space-y-4">
                                <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Order ID</span>
-                                    <span className="font-medium">{order.id}</span>
+                                    <span className="font-medium">{order.id.slice(-6).toUpperCase()}</span>
                                </div>
                                <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Order Date</span>

@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,14 +15,19 @@ import { Loader2 } from "lucide-react";
 export default function AccountPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !loading && !user) {
       router.push("/login");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isClient]);
 
-  if (loading || !user) {
+  if (!isClient || loading || !user) {
     return (
       <div className="flex min-h-screen flex-col">
         <SiteHeader />
