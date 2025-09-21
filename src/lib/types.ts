@@ -1,3 +1,4 @@
+
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export type Product = {
@@ -37,17 +38,21 @@ export type Address = {
 
 export type Order = {
   id: string;
-  date: string;
+  date: string; // Should be ISO string
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   items: Omit<CartItem, 'id' | 'imageUrl' | 'price' >[];
   total: number;
   shippingAddress: Address;
+  userId: string;
 };
 
-export type AppUser = {
+export type UserProfile = {
   uid: string;
-  email: string | null;
-  displayName: string | null;
+  email: string;
+  displayName: string;
   addresses: Address[];
+}
+
+export type AppUser = UserProfile & {
   orders: Order[];
 } | null;

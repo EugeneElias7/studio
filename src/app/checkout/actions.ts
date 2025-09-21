@@ -1,11 +1,11 @@
+
 "use server";
 
 import { z } from "zod";
 import { checkoutSchema } from "@/lib/validation";
 import { cookies } from "next/headers";
 import type { CartItem, Order, Address } from "@/lib/types";
-import { products, userAddresses } from "@/lib/data";
-import { addOrder } from "@/lib/contexts/auth-context-server";
+import { userAddresses } from "@/lib/data";
 
 type FormState = {
   success: boolean;
@@ -61,25 +61,26 @@ export async function placeOrder(prevState: FormState, formData: FormData): Prom
             isDefault: false,
         };
     } else {
+        // In a real app, you'd fetch this from the current user's addresses in the DB
         shippingAddress = userAddresses.find(a => a.id === validatedData.data.shippingAddress)!;
     }
 
 
-    const order: Order = {
-      id: `order${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
+    const order: Omit<Order, 'id' | 'userId'> = {
+      date: new Date().toISOString(),
       status: 'Processing',
       items: cartItems,
       total: total,
       shippingAddress: shippingAddress,
     };
     
-    // Add order to the "database" (in this case, server-side context)
-    addOrder(order);
+    // NOTE: We cannot call the `addOrder` from the auth context here as it's a client context hook.
+    // In a real app, you'd have a server-side function to write directly to Firestore.
+    // The order placement will be handled on the client-side after this action returns.
     
     cookies().set("cartItems", "[]"); // Clear cart cookie
 
-    return { success: true, orderId: order.id };
+    return { success: true };
 
   } catch (error) {
     console.error(error);

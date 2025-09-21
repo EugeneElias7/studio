@@ -1,3 +1,4 @@
+
 import type { Product, Category, Order, Address } from '@/lib/types';
 
 export const categories: Category[] = [
@@ -20,31 +21,11 @@ export const products: Product[] = [
   { id: '12', name: 'Cucumber', description: 'Cool and refreshing cucumbers.', price: 1.00, imageUrl: 'https://images.unsplash.com/photo-1751778706641-49c24df0af97?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjdWNtYmVyfGVufDB8fHx8MTc1ODM1OTQyMHww&ixlib=rb-4.1.0&q=80&w=1080', imageHint: 'cucumber vegetable', category: 'vegetables', stock: 110 },
 ];
 
+// Mock data is no longer the source of truth for addresses and orders.
+// This data can be used for seeding the database for the first time.
 export const userAddresses: Address[] = [
     { id: 'addr1', street: '123 Market St', city: 'Greenfield', state: 'CA', zip: '90210', isDefault: true },
     { id: 'addr2', street: '456 Orchard Ave', city: 'Greenfield', state: 'CA', zip: '90210', isDefault: false },
 ];
 
-export const userOrders: Order[] = [
-    { 
-        id: 'order1', 
-        date: '2024-07-20', 
-        status: 'Delivered', 
-        total: 25.50,
-        shippingAddress: userAddresses[0],
-        items: [
-            { id: '1', name: 'Apple', price: 2.50, imageUrl: 'https://picsum.photos/seed/apple/400/400', quantity: 4 },
-            { id: '6', name: 'Carrot', price: 1.50, imageUrl: 'https://picsum.photos/seed/carrot/400/400', quantity: 2 },
-        ]
-    },
-    { 
-        id: 'order2', 
-        date: '2024-07-28', 
-        status: 'Processing', 
-        total: 10.80,
-        shippingAddress: userAddresses[0],
-        items: [
-            { id: '2', name: 'Banana', price: 1.80, imageUrl: 'https://picsum.photos/seed/banana/400/400', quantity: 6 },
-        ]
-    },
-];
+export const userOrders: Order[] = [];

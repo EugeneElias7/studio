@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -17,8 +18,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Carrot } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Carrot, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -27,8 +29,10 @@ const formSchema = z.object({
 });
 
 export default function SignupPage() {
-  const { login, user } = useAuth(); // Using login to simulate signup and login
+  const { signup, user } = useAuth();
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,10 +49,13 @@ export default function SignupPage() {
     }
   }, [user, router]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // In a real app, you would call a signup function.
-    // We'll use login to simulate creating an account and logging in.
-    login(values.email);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setError(null);
+    try {
+        await signup(values.name, values.email, values.password);
+    } catch (e: any) {
+        setError(e.message || "An unexpected error occurred during sign up.");
+    }
   }
 
   return (
@@ -65,6 +72,13 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {error && (
+                  <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Signup Failed</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+              )}
               <FormField
                 control={form.control}
                 name="name"
@@ -104,7 +118,9 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">Create Account</Button>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Creating Account..." : "Create Account"}
+              </Button>
             </form>
           </Form>
           <p className="mt-4 text-center text-sm text-muted-foreground">

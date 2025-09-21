@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -17,8 +18,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Link from "next/link";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { Carrot } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Carrot, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -28,6 +30,7 @@ const formSchema = z.object({
 export default function LoginPage() {
   const { login, user } = useAuth();
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -43,8 +46,13 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    login(values.email);
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setError(null);
+    try {
+      await login(values.email, values.password);
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred.");
+    }
   }
 
   return (
@@ -61,6 +69,13 @@ export default function LoginPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+               {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Login Failed</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <FormField
                 control={form.control}
                 name="email"
@@ -87,7 +102,9 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">Sign In</Button>
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Signing In..." : "Sign In"}
+              </Button>
             </form>
           </Form>
           <p className="mt-4 text-center text-sm text-muted-foreground">

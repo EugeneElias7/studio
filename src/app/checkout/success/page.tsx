@@ -1,21 +1,54 @@
+
+'use client'
+
 import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { getOrder } from "@/lib/contexts/auth-context-server";
-import { notFound } from "next/navigation";
+import { notFound, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { products } from "@/lib/data";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { useEffect, useState } from "react";
+import type { Order } from "@/lib/types";
 
 
-export default function CheckoutSuccessPage({ searchParams }: { searchParams: { orderId: string }}) {
-    const orderId = searchParams.orderId;
-    const order = getOrder(orderId);
+export default function CheckoutSuccessPage() {
+    const searchParams = useSearchParams();
+    const orderId = searchParams.get('orderId');
+    const { user, loading } = useAuth();
+    const [order, setOrder] = useState<Order | null>(null);
 
-    if (!order) {
+    useEffect(() => {
+        if (!loading && user && orderId) {
+            const foundOrder = user.orders.find(o => o.id === orderId);
+            if (foundOrder) {
+                setOrder(foundOrder);
+            } else {
+                // If order not found in user's orders, it might still be loading or invalid
+                // For this example, we'll assume it's invalid if not found after loading
+                setOrder(null);
+            }
+        }
+    }, [user, orderId, loading]);
+
+
+    if (loading || !order) {
+        return (
+            <div className="flex min-h-screen flex-col bg-muted/40">
+                <SiteHeader />
+                <main className="flex-1 flex items-center justify-center">
+                    {loading ? <Loader2 className="h-12 w-12 animate-spin text-primary" /> : <p>Order not found.</p>}
+                </main>
+                <SiteFooter />
+            </div>
+        )
+    }
+
+    if (!orderId) {
         notFound();
     }
     
@@ -84,3 +117,4 @@ export default function CheckoutSuccessPage({ searchParams }: { searchParams: { 
         </div>
     )
 }
+

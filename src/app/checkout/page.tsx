@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/lib/contexts/cart-context";
@@ -9,19 +10,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useFormStatus } from "react-dom";
+import { useFormStatus, useActionState } from "react-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CreditCard, Truck, AlertCircle, Loader2 } from "lucide-react";
-import { placeOrder } from "./actions";
+import { placeOrder as placeOrderAction } from "./actions";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutSchema } from "@/lib/validation";
 import type { z } from "zod";
-import { useEffect, useActionState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import type { Order } from "@/lib/types";
 
 
 function SubmitButton({ cartTotal }: { cartTotal: number }) {
@@ -36,10 +38,10 @@ function SubmitButton({ cartTotal }: { cartTotal: number }) {
 
 export default function CheckoutPage() {
     const { cartItems, cartTotal, clearCart } = useCart();
-    const { user } = useAuth();
+    const { user, addOrder } = useAuth();
     const router = useRouter();
     
-    const [state, formAction] = useActionState(placeOrder, { success: false, error: null, orderId: null });
+    const [state, formAction] = useActionState(placeOrderAction, { success: false, error: null });
 
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
@@ -53,12 +55,43 @@ export default function CheckoutPage() {
         },
     });
 
+    // Handle order creation after server action is successful
     useEffect(() => {
-        if (state.success && state.orderId) {
-            clearCart();
-            router.push(`/checkout/success?orderId=${state.orderId}`);
+        if (state.success) {
+            const createOrder = async () => {
+                const values = form.getValues();
+                let shippingAddress;
+                if (values.shippingAddress === 'new') {
+                    shippingAddress = { id: `addr${Date.now()}`, ...values.newAddress!, isDefault: false };
+                } else {
+                    shippingAddress = user!.addresses.find(a => a.id === values.shippingAddress)!;
+                }
+
+                const orderData: Omit<Order, 'id' | 'userId'> = {
+                    date: new Date().toISOString(),
+                    status: 'Processing',
+                    items: cartItems.map(({ id, imageUrl, ...rest }) => rest), // Remove client-side only properties
+                    total: cartTotal,
+                    shippingAddress: shippingAddress,
+                };
+                
+                try {
+                    const newOrder = await addOrder(orderData);
+                    if (newOrder) {
+                        clearCart(); // Clear local cart state
+                        router.push(`/checkout/success?orderId=${newOrder.id}`);
+                    } else {
+                        // Handle case where order creation fails
+                        console.error("Order creation failed.");
+                    }
+                } catch (e) {
+                    console.error("Error creating order", e);
+                }
+            };
+            createOrder();
         }
-    }, [state, router, clearCart]);
+    }, [state.success, form, user, cartItems, cartTotal, addOrder, clearCart, router]);
+
 
     if (cartItems.length === 0) {
         return (
@@ -70,6 +103,24 @@ export default function CheckoutPage() {
                         <p className="text-muted-foreground mb-8">You can't checkout with an empty cart. Let's go shopping!</p>
                         <Button asChild>
                             <Link href="/">Continue Shopping</Link>
+                        </Button>
+                    </div>
+                </main>
+                <SiteFooter />
+            </div>
+        );
+    }
+    
+    if (!user) {
+         return (
+            <div className="flex min-h-screen flex-col">
+                <SiteHeader />
+                <main className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <h1 className="text-2xl font-bold mb-4">Please Log In</h1>
+                        <p className="text-muted-foreground mb-8">You need to be logged in to checkout.</p>
+                        <Button asChild>
+                            <Link href="/login">Login</Link>
                         </Button>
                     </div>
                 </main>
