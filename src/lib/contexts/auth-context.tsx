@@ -15,6 +15,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   loading: boolean;
   addOrder: (order: Omit<Order, 'id' | 'userId'>) => Promise<Order | null>;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +53,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       return { ...userProfile, orders };
   }, []);
+
+  const refreshUserData = useCallback(async () => {
+    const firebaseUser = auth.currentUser;
+    if (firebaseUser) {
+        setLoading(true);
+        try {
+            const userData = await fetchUserData(firebaseUser);
+            setUser(userData);
+        } catch (error) {
+            console.error("Error refreshing user data:", error);
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+  }, [fetchUserData]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -125,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading, addOrder, signInWithGoogle }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading, addOrder, signInWithGoogle, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

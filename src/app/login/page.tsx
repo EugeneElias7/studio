@@ -53,7 +53,11 @@ export default function LoginPage() {
     try {
       await login(values.email, values.password);
     } catch (e: any) {
-      setError(e.message || "An unexpected error occurred.");
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        setError(e.message || "An unexpected error occurred.");
+      }
     }
   }
 
@@ -82,7 +86,17 @@ export default function LoginPage() {
             <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Login Failed</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                    {error}
+                    {error.includes('Invalid email or password') && (
+                        <>
+                            {' '}Don't have an account?{' '}
+                            <Link href="/signup" className="font-semibold underline">
+                                Sign up.
+                            </Link>
+                        </>
+                    )}
+                </AlertDescription>
             </Alert>
             )}
           <Form {...form}>

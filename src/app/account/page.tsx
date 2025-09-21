@@ -5,17 +5,37 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useActionState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useFormStatus } from "react-dom";
+import { updateProfile } from "./actions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" disabled={pending}>
+            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Save Changes
+        </Button>
+    )
+}
 
 export default function AccountPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshUserData } = useAuth();
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const initialState = { success: false, message: "" };
+  const [state, formAction] = useActionState(updateProfile, initialState);
 
   useEffect(() => {
     setIsClient(true);
@@ -26,6 +46,13 @@ export default function AccountPage() {
       router.push("/login");
     }
   }, [user, loading, router, isClient]);
+
+  useEffect(() => {
+    if (state.success) {
+      refreshUserData(); // Refresh user data from auth context
+      setIsDialogOpen(false); // Close dialog on success
+    }
+  }, [state.success, refreshUserData]);
 
   if (!isClient || loading || !user) {
     return (
@@ -62,7 +89,42 @@ export default function AccountPage() {
                              <Button asChild variant="outline" className="w-full">
                                 <Link href="/account/orders">View Orders</Link>
                             </Button>
-                            <Button variant="secondary" className="w-full" disabled>Edit Profile</Button>
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="secondary" className="w-full">
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit Profile
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Edit Profile</DialogTitle>
+                                        <DialogDescription>
+                                            Update your personal information.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form action={formAction} className="space-y-4">
+                                        <input type="hidden" name="uid" value={user.uid} />
+                                        <div className="space-y-2">
+                                            <Label htmlFor="displayName">Full Name</Label>
+                                            <Input id="displayName" name="displayName" defaultValue={user.displayName} />
+                                        </div>
+                                         {state.success === false && state.message && (
+                                            <Alert variant="destructive">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertTitle>Error</AlertTitle>
+                                                <AlertDescription>{state.message}</AlertDescription>
+                                            </Alert>
+                                        )}
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <Button type="button" variant="ghost">Cancel</Button>
+                                            </DialogClose>
+                                            <SubmitButton />
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
                         </CardContent>
                     </Card>
                 </div>
