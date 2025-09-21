@@ -11,9 +11,10 @@ import { Badge } from "../ui/badge";
 
 interface ProductCardProps {
   product: Product;
+  priority?: boolean;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, priority = false }: ProductCardProps) {
   const { addToCart } = useCart();
 
   return (
@@ -27,6 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
               fill
               className="object-cover"
               data-ai-hint={product.imageHint}
+              priority={priority}
             />
           </div>
         </Link>
