@@ -25,6 +25,8 @@ export default function CheckoutSuccessPage() {
 
      const findOrderInUser = useCallback((currentUser: typeof user) => {
         if (currentUser && orderId) {
+            // Firestore might add the order to the user object, but we get the ID from the URL param.
+            // So we need to query all orders to find the one with the matching ID.
             const foundOrder = currentUser.orders.find(o => o.id === orderId);
             if (foundOrder) {
                 setOrder(foundOrder);
@@ -38,7 +40,7 @@ export default function CheckoutSuccessPage() {
 
     useEffect(() => {
         // If user data is already loaded, try to find the order.
-        if (!authLoading && findOrderInUser(user)) {
+        if (!authLoading && user && findOrderInUser(user)) {
             return;
         }
 
@@ -47,19 +49,19 @@ export default function CheckoutSuccessPage() {
         if (orderId) {
              // We need to refresh user data to get the latest order
             refreshUserData().finally(() => {
+                setPageLoading(false);
                 // After refresh, the user object in context will update,
                 // and the useEffect below will run.
             });
+        } else {
+            setPageLoading(false);
         }
     }, [authLoading, user, orderId, findOrderInUser, refreshUserData]);
 
     useEffect(() => {
+        // This effect runs when the user object is updated by the refreshUserData call.
         if(user && !order) {
-            if(findOrderInUser(user)) {
-                setPageLoading(false);
-            }
-        } else if (order) {
-            setPageLoading(false);
+            findOrderInUser(user);
         }
     }, [user, order, findOrderInUser]);
 
@@ -87,7 +89,7 @@ export default function CheckoutSuccessPage() {
                     <Card className="max-w-md mx-auto text-center">
                         <CardHeader>
                             <CardTitle>Order Not Found</CardTitle>
-                            <CardDescription>We couldn't find the details for this order. Please check your order history.</CardDescription>
+                            <CardDescription>We couldn't find the details for this order. It might still be processing. Please check your order history shortly.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <Button asChild variant="outline">
