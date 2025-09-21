@@ -14,7 +14,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   loading: boolean;
-  addOrder: (order: Omit<Order, 'id' | 'userId'>) => Promise<Order | null>;
   refreshUserData: () => Promise<void>;
 }
 
@@ -37,15 +36,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (userDocSnap.exists()) {
           userProfile = userDocSnap.data() as UserProfile;
       } else {
-          // This case can happen for a new Google sign-in user,
-          // or if document creation failed during email signup.
            userProfile = {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
               displayName: firebaseUser.displayName || 'New User',
               addresses: [],
           };
-          // Create the document because it doesn't exist.
           await setDoc(userDocRef, userProfile);
       }
 
@@ -63,7 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(userData);
         } catch (error) {
             console.error("Error refreshing user data:", error);
-            setUser(null);
+            // Don't nullify user on refresh failure, might be temporary network issue
         } finally {
             setLoading(false);
         }
@@ -73,15 +69,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setLoading(true);
-        try {
-          const userData = await fetchUserData(firebaseUser);
-          setUser(userData);
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUser(null);
-        } finally {
-          setLoading(false);
+        if (!user || user.uid !== firebaseUser.uid) { // Fetch only if user is new or changed
+          setLoading(true);
+          try {
+            const userData = await fetchUserData(firebaseUser);
+            setUser(userData);
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+            setUser(null);
+          } finally {
+            setLoading(false);
+          }
         }
       } else {
         setUser(null);
@@ -90,18 +88,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [fetchUserData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async (email: string, pass: string) => {
     await signInWithEmailAndPassword(auth, email, pass);
-    // Auth state change will trigger user data fetching
   };
   
   const signup = async (name: string, email: string, pass: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const { uid } = userCredential.user;
     
-    // Create user profile in Firestore
     const userProfile: UserProfile = {
         uid,
         email,
@@ -109,40 +106,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         addresses: [],
     };
     await setDoc(doc(db, "users", uid), userProfile);
-    // Auth state will change, triggering a fetch of the new user's data.
-    // No need to set user state manually here.
   };
   
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
-    // Auth state change will trigger re-fetch of all user data and profile creation if needed.
   };
-
 
   const logout = async () => {
     await signOut(auth);
   };
-  
-  const addOrder = async (orderData: Omit<Order, 'id' | 'userId'>): Promise<Order | null> => {
-      if (!user) {
-          throw new Error("User must be logged in to place an order.");
-      }
-      const newOrder: Omit<Order, 'id'> = {
-          ...orderData,
-          userId: user.uid,
-      };
-      const docRef = await addDoc(collection(db, "orders"), newOrder);
-      const createdOrder: Order = { ...newOrder, id: docRef.id };
-
-      // Update local user state
-      setUser(currentUser => currentUser ? { ...currentUser, orders: [...currentUser.orders, createdOrder]} : null);
-
-      return createdOrder;
-  };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading, addOrder, signInWithGoogle, refreshUserData }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading, signInWithGoogle, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

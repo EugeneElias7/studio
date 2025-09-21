@@ -11,7 +11,7 @@ import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState } from "react";
-import { useActionState } from "react";
+import { useActionState } from "react-dom";
 import { useFormStatus } from "react-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,8 +47,9 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         if (isClient && !authLoading && user?.addresses) {
-            const defaultAddress = user.addresses.find(a => a.isDefault)?.id || (user.addresses.length > 0 ? user.addresses[0].id : "new");
-            setSelectedAddress(defaultAddress);
+            const defaultAddressId = user.addresses.find(a => a.isDefault)?.id;
+            const firstAddressId = user.addresses.length > 0 ? user.addresses[0].id : "new";
+            setSelectedAddress(defaultAddressId || firstAddressId);
         } else if (isClient && !authLoading && user) {
             setSelectedAddress("new");
         }
@@ -79,7 +80,7 @@ export default function CheckoutPage() {
         );
     }
     
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && isClient) {
         return (
             <div className="flex min-h-screen flex-col">
                 <SiteHeader />
@@ -208,7 +209,6 @@ export default function CheckoutPage() {
                                 </CardContent>
                             </Card>
 
-
                             {paymentMethod === 'creditCard' && (
                                 <Card>
                                     <CardHeader>
@@ -236,8 +236,8 @@ export default function CheckoutPage() {
                                     </CardContent>
                                 </Card>
                             )}
-
                         </div>
+
                         <div className="lg:col-span-1 space-y-8">
                             <Card>
                                 <CardHeader>
@@ -294,5 +294,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-    
