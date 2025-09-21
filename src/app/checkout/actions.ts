@@ -19,12 +19,8 @@ const processPayment = (
 ): Promise<{ success: boolean; error?: string }> => {
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Simulate a validation error
-      if (values.cardNumber.startsWith("4111")) {
-        resolve({ success: false, error: "Invalid credit card number." });
-      } else {
-        resolve({ success: true });
-      }
+      // No more validation error
+      resolve({ success: true });
     }, 1500);
   });
 };

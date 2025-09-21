@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/lib/contexts/auth-context";
-import { LogOut, User, ShoppingBag, Settings } from "lucide-react";
+import { LogOut, User, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "../ui/skeleton";
 
@@ -62,12 +62,6 @@ export function UserNav() {
             <Link href="/account/orders">
               <ShoppingBag className="mr-2 h-4 w-4" />
               <span>Orders</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href="/admin/categorize">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Admin Tools</span>
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>

@@ -40,7 +40,7 @@ export type Order = {
   id: string;
   date: string; // Should be ISO string
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
-  items: Omit<CartItem, 'id' | 'imageUrl' | 'price' >[];
+  items: Omit<CartItem, 'id' | 'imageUrl'>[];
   total: number;
   shippingAddress: Address;
   userId: string;

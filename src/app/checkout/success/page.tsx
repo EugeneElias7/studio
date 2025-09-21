@@ -106,9 +106,14 @@ export default function CheckoutSuccessPage() {
                                         <p>${order.total.toFixed(2)}</p>
                                  </div>
                             </div>
-                            <Button asChild className="w-full mt-6">
-                                <Link href="/">Continue Shopping</Link>
-                            </Button>
+                            <div className="flex gap-4 mt-6">
+                                <Button asChild className="flex-1">
+                                    <Link href="/">Continue Shopping</Link>
+                                </Button>
+                                <Button asChild variant="outline" className="flex-1">
+                                    <Link href="/account/orders">View Order History</Link>
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -117,4 +122,3 @@ export default function CheckoutSuccessPage() {
         </div>
     )
 }
-
