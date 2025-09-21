@@ -27,6 +27,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               alt={product.name}
               fill
               className="object-cover"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               data-ai-hint={product.imageHint}
               priority={priority}
             />
