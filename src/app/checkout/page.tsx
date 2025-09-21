@@ -44,23 +44,26 @@ export default function CheckoutPage() {
         setIsClient(true);
     }, []);
 
+    // Set default address or "new" when component mounts or user data changes
     useEffect(() => {
-        if (isClient && !authLoading && user?.addresses) {
-            const defaultAddressId = user.addresses.find(a => a.isDefault)?.id;
-            const firstAddressId = user.addresses.length > 0 ? user.addresses[0].id : "new";
-            setSelectedAddress(defaultAddressId || firstAddressId);
-        } else if (isClient && !authLoading && user) {
-            setSelectedAddress("new");
+        if (isClient && !authLoading && user) {
+            if (user.addresses && user.addresses.length > 0) {
+                 const defaultAddressId = user.addresses.find(a => a.isDefault)?.id;
+                 setSelectedAddress(defaultAddressId || user.addresses[0].id);
+            } else {
+                setSelectedAddress("new");
+            }
         }
     }, [user, authLoading, isClient]);
 
     const initialState = { success: false, error: null, orderId: null };
     const [state, formAction] = useActionState(placeOrder, initialState);
 
+    // Effect to handle successful order placement
     useEffect(() => {
         if (state.success && state.orderId) {
             clearCart(); 
-            refreshUserData().then(() => {
+            refreshUserData().then(() => { // Ensure user data (with new order) is fresh before redirecting
                 router.push(`/checkout/success?orderId=${state.orderId}`);
             });
         }
@@ -293,5 +296,3 @@ export default function CheckoutPage() {
         </div>
     );
 }
-
-    

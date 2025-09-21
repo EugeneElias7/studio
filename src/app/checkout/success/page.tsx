@@ -13,7 +13,7 @@ import { CheckCircle, Loader2 } from "lucide-react";
 import { products } from "@/lib/data";
 import { useAuth } from "@/lib/contexts/auth-context";
 import { useEffect, useState, useCallback } from "react";
-import type { Order } from "@/lib/types";
+import type { Order, AppUser } from "@/lib/types";
 
 
 export default function CheckoutSuccessPage() {
@@ -23,20 +23,28 @@ export default function CheckoutSuccessPage() {
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const findOrder = useCallback((currentUser: typeof user, currentOrderId: string | null) => {
+    const findOrderInUser = useCallback((currentUser: AppUser, currentOrderId: string | null) => {
         if (!currentUser || !currentOrderId) return null;
-        return currentUser.orders.find(o => o.id === currentOrderId) || null;
+        // The user object from useAuth now contains the latest orders
+        return currentUser.orders.find(o => o.id === currentOrderId) ?? null;
     }, []);
 
     useEffect(() => {
-        // The user object is now up-to-date thanks to refreshUserData in the checkout page
-        // We can now safely find the order
-        if (user && orderId) {
-            const foundOrder = findOrder(user, orderId);
-            setOrder(foundOrder);
+        if (authLoading) {
+            // Wait for authentication to finish
+            return;
         }
-        setLoading(false);
-    }, [user, orderId, findOrder]);
+        
+        if (user && orderId) {
+            // user data is already refreshed by the time we get here from the checkout page
+            const foundOrder = findOrderInUser(user, orderId);
+            setOrder(foundOrder);
+            setLoading(false);
+        } else {
+            // Handle cases where user or orderId is missing after auth is done
+            setLoading(false);
+        }
+    }, [user, orderId, authLoading, findOrderInUser]);
 
 
     const getProductDetails = (name: string) => {
@@ -63,7 +71,7 @@ export default function CheckoutSuccessPage() {
                     <Card className="max-w-md mx-auto text-center">
                         <CardHeader>
                             <CardTitle>Order Not Found</CardTitle>
-                            <CardDescription>We couldn't find the details for this order. Please check your order history shortly.</CardDescription>
+                            <CardDescription>We couldn't find the details for this order. It may still be processing. Please check your order history shortly.</CardDescription>
                         </CardHeader>
                         <CardContent>
                              <Button asChild variant="outline">
@@ -146,5 +154,3 @@ export default function CheckoutSuccessPage() {
         </div>
     )
 }
-
-    
