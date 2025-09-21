@@ -21,9 +21,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { checkoutSchema } from "@/lib/validation";
 import type { z } from "zod";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import type { Order } from "@/lib/types";
+import type { Order, Address } from "@/lib/types";
 
 
 function SubmitButton({ cartTotal }: { cartTotal: number }) {
@@ -55,42 +55,51 @@ export default function CheckoutPage() {
         },
     });
 
+    const createOrder = useCallback(async () => {
+        if (!user) return;
+
+        const values = form.getValues();
+        let shippingAddress: Address;
+
+        if (values.shippingAddress === 'new') {
+            // Create a consistent ID on the client-side
+            shippingAddress = { id: `addr${Date.now()}`, ...values.newAddress!, isDefault: false };
+        } else {
+            const foundAddress = user.addresses.find(a => a.id === values.shippingAddress);
+            if (!foundAddress) {
+                console.error("Selected address not found");
+                return;
+            }
+            shippingAddress = foundAddress;
+        }
+
+        const orderData: Omit<Order, 'id' | 'userId'> = {
+            date: new Date().toISOString(),
+            status: 'Processing',
+            items: cartItems.map(({ id, imageUrl, ...rest }) => rest), // Remove client-side only properties
+            total: cartTotal,
+            shippingAddress: shippingAddress,
+        };
+        
+        try {
+            const newOrder = await addOrder(orderData);
+            if (newOrder) {
+                clearCart(); // Clear local cart state
+                router.push(`/checkout/success?orderId=${newOrder.id}`);
+            } else {
+                console.error("Order creation failed on client.");
+            }
+        } catch (e) {
+            console.error("Error creating order", e);
+        }
+    }, [user, form, cartItems, cartTotal, addOrder, clearCart, router]);
+    
     // Handle order creation after server action is successful
     useEffect(() => {
         if (state.success) {
-            const createOrder = async () => {
-                const values = form.getValues();
-                let shippingAddress;
-                if (values.shippingAddress === 'new') {
-                    shippingAddress = { id: `addr${Date.now()}`, ...values.newAddress!, isDefault: false };
-                } else {
-                    shippingAddress = user!.addresses.find(a => a.id === values.shippingAddress)!;
-                }
-
-                const orderData: Omit<Order, 'id' | 'userId'> = {
-                    date: new Date().toISOString(),
-                    status: 'Processing',
-                    items: cartItems.map(({ id, imageUrl, ...rest }) => rest), // Remove client-side only properties
-                    total: cartTotal,
-                    shippingAddress: shippingAddress,
-                };
-                
-                try {
-                    const newOrder = await addOrder(orderData);
-                    if (newOrder) {
-                        clearCart(); // Clear local cart state
-                        router.push(`/checkout/success?orderId=${newOrder.id}`);
-                    } else {
-                        // Handle case where order creation fails
-                        console.error("Order creation failed.");
-                    }
-                } catch (e) {
-                    console.error("Error creating order", e);
-                }
-            };
             createOrder();
         }
-    }, [state.success, form, user, cartItems, cartTotal, addOrder, clearCart, router]);
+    }, [state.success, createOrder]);
 
 
     if (cartItems.length === 0) {
@@ -283,3 +292,5 @@ export default function CheckoutPage() {
         </div>
     );
 }
+
+    
